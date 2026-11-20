@@ -20,10 +20,13 @@ dashboard; production reports; low-stock / shortage / negative-stock alerts.
 payroll & labour (employees, daily/monthly pay, overtime, allowances, deductions, approve → pay, summaries by day/week/month, labour charged to a production batch); budgets (monthly/quarterly/yearly by category, department, total or production, actual vs budget, last-period comparison, over-budget alerts, every change audited with a reason);
 daily closing (expected vs counted cash, note/coin counting, variance explanation, optional manager approval, reopen with reason, printable report) and account reconciliation (optional audited adjustment); dashboard controls and alerts.
 
-Phase 5 (P&L, cash-flow forecast, reports centre, exports) is tagged P5 in the sidebar and not built yet.
+**Phase 5 (Analytics) — complete:** Profit & Loss (accrual, with previous-period comparison, product profitability, an “estimated” banner when costing is incomplete, and a memo of what is deliberately *not* in profit); cash-flow statement; provisional balance sheet; daily/monthly summaries;
+cash-flow **forecast** (7/30/60/90 days, adjustable collection and payment assumptions, planned items, shortage alerts — always labelled as a projection); a library of 35 reports with date/product/customer/supplier/category/account filters and Excel/CSV/PDF export; a filterable audit log with before/after diffs and CSV export; a data-integrity check.
+
+**Not built yet:** bulk CSV/Excel import of historical data (opening balances, debts, stock, sales) and the final QA pass (Phase 6).
 
 ## Setup
-1. Create a Supabase project. In the SQL editor run, in order, `supabase/migrations/0001_foundation.sql`, `0002_commercial.sql`, then `0003_manufacturing.sql`, then `0004_management.sql`.
+1. Create a Supabase project. In the SQL editor run, in order, `supabase/migrations/0001_foundation.sql`, `0002_commercial.sql`, then `0003_manufacturing.sql`, `0004_management.sql`, then `0005_analytics.sql`.
 2. `cp .env.example .env` and fill in `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 3. `npm install && npm run dev`
 4. Open the app and **create the first account — it automatically becomes the Owner.** Other staff sign up and wait
@@ -53,10 +56,13 @@ Phase 5 (P&L, cash-flow forecast, reports centre, exports) is tagged P5 in the s
 - Budgets are written only through `save_budget` (reason + before/after audit). Actuals come from approved expenses, supplier expense invoices, legacy cash expenses and payroll, or batch costs for production budgets.
 - Daily closing never edits the ledger; it records expected vs counted, requires an explanation for variances, and a reconciliation row. Reopening needs a reason and is audited.
 - Staff names for "recorded by" labels come from a names-only view; the profiles table (phones etc.) stays private.
+- **Profit & Loss** = invoiced sales (+ manual entries in 'Sales' categories) − cost of goods (stock dispatched at weighted-average cost, returns, losses, production write-offs) − operating expenses (approved expenses, expense invoices, payroll not charged to batches) + other income − other expenses. Customer collections booked as income, transfers, loans, owner flows, supplier payments, material purchases and batch costs are excluded and disclosed in the memo. Product profitability allocates invoice discounts across lines and uses the actual dispatch cost (estimated from current average cost, and marked, when not yet dispatched).
+- **Balance sheet** is provisional: it is built from live balances as at today, equity is the balancing figure, and fixed assets/depreciation/tax are not tracked.
+- **Forecast** never writes to the ledger. It starts from actual balances, applies the collection percentages to open invoices (it does not assume all debts are collected on time), adds expected new sales (cash share learnt from history unless overridden), supplier bills by due date, approved unpaid payroll/expenses, recurring expense and payroll run-rates, and planned items. Financial reports and the forecast require both `reports` and `dashboard` permissions (cashiers and supervisors get only the operational reports for their modules).
 - Internal database helpers are not callable by signed-in users: migration 0003 revokes `EXECUTE` from `authenticated` on everything and re-grants an explicit allow-list (Supabase otherwise grants it by default).
 - Supplier/payables data is restricted to the `suppliers` permission (cashiers see customer debts only).
 
 ## Tests
 - `npm test` — date/format helpers.
-- `supabase/tests/run.sh` — 269 database checks (Phases 1–4) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
+- `supabase/tests/run.sh` — 326 database checks (Phases 1–5) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
   (`PGHOST=… PGPORT=… PGUSER=postgres ./supabase/tests/run.sh`).

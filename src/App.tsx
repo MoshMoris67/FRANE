@@ -29,9 +29,10 @@ import Document from './pages/Document'
 import Expenses from './pages/Expenses'
 import Budgets from './pages/Budgets'
 import DailyClosing from './pages/DailyClosing'
+import Reports from './pages/Reports'
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } } })
-const BUILT: Record<string, React.ReactElement> = { dashboard: <Dashboard />, cashbook: <Cashbook />, transactions: <Transactions />, accounts: <Accounts />, settings: <Settings />, sales: <Sales />, customers: <Customers />, debts: <Debts />, suppliers: <Suppliers />, inventory: <Inventory />, production: <Production />, expenses: <Expenses />, budgets: <Budgets />, daily_closing: <DailyClosing /> }
+const BUILT: Record<string, React.ReactElement> = { dashboard: <Dashboard />, cashbook: <Cashbook />, transactions: <Transactions />, accounts: <Accounts />, settings: <Settings />, sales: <Sales />, customers: <Customers />, debts: <Debts />, suppliers: <Suppliers />, inventory: <Inventory />, production: <Production />, expenses: <Expenses />, budgets: <Budgets />, daily_closing: <DailyClosing />, reports: <Reports /> }
 
 function Gate() {
   const { session, loading, perms, can } = useAuth()

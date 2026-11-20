@@ -55,6 +55,7 @@ export interface DashboardData {
   inventory_movement: { date: string; in: number; out: number }[]
   budget_alerts: { id: string; label: string; period_type: string; budget: number; actual: number; pct: number }[]
   unreconciled_accounts: { id: string; name: string; last: string | null }[]
+  forecast_shortage?: { day: number; date: string; balance: number } | null; forecast_lowest_30?: { date: string; balance: number } | null
   pending_expense_approvals: number; unpaid_expenses: number; payroll_unpaid: number | null; payroll_pending: number | null; closings_pending: number
 }
 
@@ -125,3 +126,30 @@ export interface BudgetRow { id: string; scope_type: 'total' | 'group' | 'catego
 export interface BudgetReport { period_type: 'month' | 'quarter' | 'year'; period_start: string; period_end: string; threshold_pct: number; rows: BudgetRow[] }
 export interface Closing { id: string; closing_date: string; account_id: string; opening_balance: number; receipts: number; payments: number; expected_balance: number; counted_balance: number; variance: number; denominations: Record<string, number> | null; explanation: string | null; status: 'submitted' | 'approved' | 'rejected' | 'reopened'; closed_by: string | null; closed_at: string; approved_by: string | null; approved_at: string | null; review_note: string | null; reopen_reason: string | null; accounts?: { name: string; type: AccountType } | null }
 export interface Reconciliation { id: string; account_id: string; reconciliation_date: string; system_balance: number; actual_balance: number; difference: number; notes: string | null; adjustment_txn_id: string | null; closing_id: string | null; created_at: string; accounts?: { name: string } | null }
+
+/* ---------- Phase 5 ---------- */
+export interface Line { label: string; amount: number }
+export interface PnL {
+  from: string; to: string
+  revenue: { product_sales: number; transport: number; invoiced_sales: number; manual_sales_entries: number; total: number }
+  cogs: { lines: Line[]; total: number }; gross_profit: number; gross_margin_pct: number | null
+  operating_expenses: { groups: { group: string; total: number; lines: Line[] }[]; total: number }
+  other_income: { lines: Line[]; total: number }; other_expenses: { lines: Line[]; total: number }; net_profit: number
+  memo: Record<string, number>
+  flags: { uncosted_dispatches: number; pending_expenses_excluded: number; estimated: boolean; negative_stock_items: number }
+}
+export interface ProductProfit { product: string; quantity: number; revenue: number; cost: number; gross_profit: number; margin_pct: number | null; cost_per_unit: number | null; estimated_cost_share_pct: number }
+export interface CashFlowStatement { opening: number; closing: number; inflows: number; outflows: number; net: number; lines: { section: string; label: string; inflow: number; outflow: number; net: number }[]; note: string }
+export interface BalanceSheet {
+  as_at: string
+  assets: { cash_and_bank: { name: string; type: string; balance: number }[]; cash_and_bank_total: number; receivables: number; finished_goods: number; raw_materials: number; supplier_advances: number; total: number }
+  liabilities: { supplier_payables: number; unpaid_expenses: number; payroll_owed: number; customer_credit: number; loans: number; total: number }
+  equity: { owner_contributions: number; owner_withdrawals: number; net_assets: number; retained_and_opening_balance: number; profit_to_date_per_pl: number }
+  notes: string[]
+}
+export interface ForecastDay { day: number; date: string; in_collections: number; in_new_sales: number; in_planned: number; out_suppliers: number; out_payroll: number; out_expenses: number; out_planned: number; net: number; balance: number }
+export interface Forecast {
+  is_forecast: true; as_of: string; opening: number; avg_daily_sales: number; cash_share_pct: number; recurring_daily_expenses: number; recurring_daily_payroll: number
+  assumptions: Record<string, number | boolean | null>; daily: ForecastDay[]; first_shortage: { day: number; date: string; balance: number } | null; lowest_point: { day: number; date: string; balance: number }
+}
+export interface ForecastItem { id: string; item_date: string; description: string; amount: number; direction: 'in' | 'out'; kind: string; active: boolean }

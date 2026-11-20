@@ -14,7 +14,7 @@ export const NAV: NavItem[] = [
   { key: 'suppliers', label: 'Suppliers', path: '/suppliers', icon: Truck, module: 'suppliers', phase: 2, built: true, summary: 'Supplier database, purchase invoices, payables and payment allocation.' },
   { key: 'debts', label: 'Debts & Payments', path: '/debts', icon: HandCoins, module: 'debts', phase: 2, built: true, summary: 'Receivables and payables with aging, partial payments and allocation.' },
   { key: 'budgets', label: 'Budgets', path: '/budgets', icon: PiggyBank, module: 'budgets', phase: 4, built: true, summary: 'Monthly/quarterly/yearly budgets with variance and over-budget alerts.' },
-  { key: 'reports', label: 'Reports', path: '/reports', icon: BarChart3, module: 'reports', phase: 5, summary: 'Profit & Loss, cash-flow forecasting, sales, inventory, production and debt reports.' },
+  { key: 'reports', label: 'Reports', path: '/reports', icon: BarChart3, module: 'reports', phase: 5, built: true, summary: 'Profit & Loss, cash-flow forecasting, sales, inventory, production and debt reports.' },
   { key: 'accounts', label: 'Accounts', path: '/accounts', icon: Landmark, module: 'accounts', phase: 1, built: true },
   { key: 'daily_closing', label: 'Daily Closing', path: '/daily-closing', icon: CalendarCheck, module: 'daily_closing', phase: 4, built: true, summary: 'End-of-day cash count, variance explanation, approval and reconciliation.' },
   { key: 'settings', label: 'Settings', path: '/settings', icon: Settings, module: 'settings', phase: 1, built: true },
