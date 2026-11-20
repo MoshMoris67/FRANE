@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  body { @apply bg-slate2-50 text-charcoal-900 antialiased font-sans; }
+  input, select, textarea { font-size: 16px; } /* prevents iOS zoom */
+  @media (min-width: 640px) { input, select, textarea { font-size: 14px; } }
+}
+@layer components {
+  .input { @apply w-full rounded-md border border-slate2-300 bg-white px-3 py-2 text-sm text-charcoal-900 placeholder:text-slate2-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate2-100 disabled:text-slate2-500; }
+  .label { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-slate2-600; }
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-brand-500 text-white hover:bg-brand-600; }
+  .btn-dark { @apply btn bg-charcoal-900 text-white hover:bg-charcoal-700; }
+  .btn-ghost { @apply btn border border-slate2-300 bg-white text-charcoal-900 hover:bg-slate2-100; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .card { @apply rounded-lg border border-slate2-200 bg-white shadow-card; }
+  .th { @apply whitespace-nowrap px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate2-500; }
+  .td { @apply px-3 py-2.5 text-sm; }
+  .num { @apply text-right tabular-nums; }
+}
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+}
