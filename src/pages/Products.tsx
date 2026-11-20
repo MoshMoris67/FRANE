@@ -9,15 +9,18 @@ import { useAuth } from '../auth/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from '../components/toast'
 
-export default function Products() {
+export default function Products({ embedded = false }: { embedded?: boolean }) {
   const { data, isLoading, error, refetch } = useProducts(); const cats = useProductCategories(); const { can } = useAuth()
   const [q, setQ] = useState(''); const [cat, setCat] = useState(''); const [edit, setEdit] = useState<Product | 'new' | null>(null); const [catOpen, setCatOpen] = useState(false)
   const list = (data ?? []).filter((p) => (!cat || p.category_id === cat) && (!q || `${p.name} ${p.sku} ${p.dimensions ?? ''}`.toLowerCase().includes(q.toLowerCase())))
   return (
     <>
-      <PageHeader title="Inventory & Products" subtitle="Product catalogue and price list"
-        actions={<>{can('inventory', 'edit') && <button className="btn-ghost" onClick={() => setCatOpen(true)}><Tags size={15} />Categories</button>}{can('inventory', 'create') && <button className="btn-primary" onClick={() => setEdit('new')}><Plus size={16} />Add product</button>}</>} />
-      <div className="mb-4"><Notice tone="neutral">Stock levels, production, raw materials and the inventory movement ledger arrive in Phase 3. Prices set here are copied onto each invoice, so changing a price never alters past sales.</Notice></div>
+      {embedded ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-slate2-500">Prices set here are copied onto each invoice, so changing a price never alters past sales.</p>
+          <div className="flex gap-2">{can('inventory', 'edit') && <button className="btn-ghost" onClick={() => setCatOpen(true)}><Tags size={15} />Categories</button>}{can('inventory', 'create') && <button className="btn-primary" onClick={() => setEdit('new')}><Plus size={16} />Add product</button>}</div></div>
+      ) : (
+        <PageHeader title="Products" subtitle="Product catalogue and price list" actions={<>{can('inventory', 'edit') && <button className="btn-ghost" onClick={() => setCatOpen(true)}><Tags size={15} />Categories</button>}{can('inventory', 'create') && <button className="btn-primary" onClick={() => setEdit('new')}><Plus size={16} />Add product</button>}</>} />
+      )}
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2"><div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search products…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <select className="input" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">All categories</option>{(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}

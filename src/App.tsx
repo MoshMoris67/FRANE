@@ -22,11 +22,13 @@ import SaleDetail from './pages/SaleDetail'
 import Debts from './pages/Debts'
 import Suppliers from './pages/Suppliers'
 import SupplierDetail from './pages/SupplierDetail'
-import Products from './pages/Products'
+import Inventory from './pages/Inventory'
+import Production from './pages/Production'
+import BatchDetail from './pages/BatchDetail'
 import Document from './pages/Document'
 
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } } })
-const BUILT: Record<string, React.ReactElement> = { dashboard: <Dashboard />, cashbook: <Cashbook />, transactions: <Transactions />, accounts: <Accounts />, settings: <Settings />, sales: <Sales />, customers: <Customers />, debts: <Debts />, suppliers: <Suppliers />, inventory: <Products /> }
+const BUILT: Record<string, React.ReactElement> = { dashboard: <Dashboard />, cashbook: <Cashbook />, transactions: <Transactions />, accounts: <Accounts />, settings: <Settings />, sales: <Sales />, customers: <Customers />, debts: <Debts />, suppliers: <Suppliers />, inventory: <Inventory />, production: <Production /> }
 
 function Gate() {
   const { session, loading, perms, can } = useAuth()
@@ -41,6 +43,7 @@ function Gate() {
       <Route element={<AppLayout />}>
         <Route path="/customers/:id" element={guard('customers', <CustomerDetail />)} />
         <Route path="/suppliers/:id" element={guard('suppliers', <SupplierDetail />)} />
+        <Route path="/production/:id" element={guard('production', <BatchDetail />)} />
         <Route path="/sales/new" element={guard('sales', <SaleForm />, 'create')} />
         <Route path="/sales/:id/edit" element={guard('sales', <SaleForm />, 'create')} />
         <Route path="/sales/:id" element={guard('sales', <SaleDetail />)} />

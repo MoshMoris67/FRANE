@@ -97,3 +97,26 @@ export function TrendCharts({ d }: { d: DashboardData }) {
     </div>
   )
 }
+
+export function OperationsCharts({ d }: { d: DashboardData }) {
+  const sales = d.sales_by_product.map((r) => ({ name: r.name, amount: num(r.amount), qty: num(r.qty) }))
+  const prod = d.production_by_product.map((r) => ({ name: r.name, qty: num(r.qty) }))
+  const mov = d.inventory_movement.map((r) => ({ name: label(r.date), in: num(r.in), out: num(r.out) }))
+  const qtip = { contentStyle: tip.contentStyle, formatter: (v: unknown) => num(v).toLocaleString() }
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <ChartCard title="Sales by product" subtitle="Invoiced amount in the period" empty={sales.length === 0}>
+        <ResponsiveContainer><BarChart data={sales} layout="vertical" margin={{ left: 8 }}><CartesianGrid stroke={C.grid} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={fmtCompact} /><YAxis type="category" dataKey="name" {...axis} width={96} /><Tooltip {...tip} />
+          <Bar isAnimationActive={false} dataKey="amount" name="Sales" fill={C.orange} radius={[0, 3, 3, 0]} /></BarChart></ResponsiveContainer>
+      </ChartCard>
+      <ChartCard title="Production by product" subtitle="Accepted units from completed batches" empty={prod.length === 0}>
+        <ResponsiveContainer><BarChart data={prod} layout="vertical" margin={{ left: 8 }}><CartesianGrid stroke={C.grid} horizontal={false} /><XAxis type="number" {...axis} tickFormatter={fmtCompact} /><YAxis type="category" dataKey="name" {...axis} width={96} /><Tooltip {...qtip} />
+          <Bar isAnimationActive={false} dataKey="qty" name="Accepted units" fill={C.charcoal} radius={[0, 3, 3, 0]} /></BarChart></ResponsiveContainer>
+      </ChartCard>
+      <ChartCard title="Inventory movement" subtitle="Finished goods in vs out (units)" empty={mov.length === 0}>
+        <ResponsiveContainer><BarChart data={mov}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip {...qtip} /><Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar isAnimationActive={false} dataKey="in" name="In" fill={C.green} radius={[3, 3, 0, 0]} /><Bar isAnimationActive={false} dataKey="out" name="Out" fill={C.red} radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer>
+      </ChartCard>
+    </div>
+  )
+}

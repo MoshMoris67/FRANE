@@ -20,6 +20,10 @@ export default function CategoriesTab() {
     if (e) return setError(e.code === '23505' ? 'That category already exists.' : errMsg(e))
     setName(''); reload()
   }
+  async function toggleTrack(id: string, v: boolean) {
+    const { error: e } = await supabase.from('transaction_categories').update({ tracks_inventory: v }).eq('id', id)
+    if (e) setError(errMsg(e)); else reload()
+  }
   async function toggle(id: string, is_active: boolean) {
     const { error: e } = await supabase.from('transaction_categories').update({ is_active }).eq('id', id)
     if (e) setError(errMsg(e)); else reload()
@@ -38,9 +42,9 @@ export default function CategoriesTab() {
           <div key={k} className="card"><h3 className="border-b border-slate2-200 px-4 py-3 text-sm font-semibold capitalize">{k} categories</h3>
             <ul className="divide-y divide-slate2-100">{data.filter((c) => c.kind === k).map((c) => (
               <li key={c.id} className="flex items-center justify-between px-4 py-2 text-sm"><span className={c.is_active ? '' : 'text-slate2-400 line-through'}>{c.name} {c.group_name && <span className="text-xs text-slate2-400">· {c.group_name}</span>}</span>
-                {edit ? <button className="text-xs font-semibold text-brand-600" onClick={() => toggle(c.id, !c.is_active)}>{c.is_active ? 'Deactivate' : 'Activate'}</button> : <Badge>{c.is_active ? 'Active' : 'Inactive'}</Badge>}</li>))}</ul></div>))}
+                <span className="flex items-center gap-3">{k === 'expense' && (edit ? <label className="flex items-center gap-1 text-[11px] text-slate2-500" title="Inventory-tracked: bought via Receive materials, expensed only when used in production"><input type="checkbox" checked={c.tracks_inventory} onChange={(e) => toggleTrack(c.id, e.target.checked)} />stock</label> : c.tracks_inventory && <Badge tone="orange">Stock</Badge>)}{edit ? <button className="text-xs font-semibold text-brand-600" onClick={() => toggle(c.id, !c.is_active)}>{c.is_active ? 'Deactivate' : 'Activate'}</button> : <Badge>{c.is_active ? 'Active' : 'Inactive'}</Badge>}</span></li>))}</ul></div>))}
       </div>
-      <p className="text-xs text-slate2-500">Categories are never deleted, so historical transactions keep their category. Deactivated categories disappear from new entries only.</p>
+      <p className="text-xs text-slate2-500">Categories are never deleted, so historical transactions keep their category. “Stock” categories (cement, sand, aggregate, stone dust) are bought through Receive materials and expensed only when used in production — this stops them being counted twice.</p>
     </div>
   )
 }

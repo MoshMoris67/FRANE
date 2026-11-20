@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Printer, HandCoins, Pencil, Ban, Truck } from 'lucide-react'
+import { ArrowLeft, Printer, HandCoins, Pencil, Ban, Truck, Undo2 } from 'lucide-react'
 import clsx from 'clsx'
 import { Spinner, ErrorBox, Notice, Modal, Field, PageHeader, Empty } from '../components/ui'
 import { SaleStatusBadges, DeliveryBadge, DELIVERY_LABEL } from '../features/commercial/badges'
@@ -17,7 +17,7 @@ interface Alloc { id: string; amount: number; reversed: boolean; created_at: str
 
 export default function SaleDetail() {
   const { id = '' } = useParams(); const { can } = useAuth(); const refresh = useRefreshMoney()
-  const [paying, setPaying] = useState(false); const [cancelling, setCancelling] = useState(false); const [reason, setReason] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
+  const [returning, setReturning] = useState(false); const [returnItem, setReturnItem] = useState(''); const [returnQty, setReturnQty] = useState(''); const [returnReason, setReturnReason] = useState(''); const [paying, setPaying] = useState(false); const [cancelling, setCancelling] = useState(false); const [reason, setReason] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
   const { data, isLoading, error: qErr } = useQuery({
     queryKey: ['sale', id],
     queryFn: async () => {
@@ -37,9 +37,22 @@ export default function SaleDetail() {
   const { sale: s, items, allocs } = data
   const confirmed = s.status === 'confirmed'
 
-  async function setDelivery(v: string) {
-    const { error: e } = await supabase.rpc('set_delivery_status', { p_id: id, p_status: v })
-    if (e) setError(errMsg(e)); else { await refresh(); toast('Delivery status updated') }
+  async function setDelivery(v: string, allowNegative = false) {
+    setError('')
+    const { error: e } = await supabase.rpc('set_delivery_status', { p_id: id, p_status: v, p_allow_negative: allowNegative })
+    if (e) {
+      const msg = errMsg(e)
+      if (/not on hand|in stock/.test(e.message) && can('inventory', 'edit') && !allowNegative && confirm(`${msg}\n\nDispatch anyway? Stock will go negative and be flagged for review.`)) return setDelivery(v, true)
+      return setError(msg)
+    }
+    await refresh(); toast(v === 'dispatched' || v === 'delivered' ? 'Delivery updated — stock deducted' : 'Delivery status updated')
+  }
+  async function recordReturn() {
+    const pid = returnItem; setBusy(true); setError('')
+    const { error: e } = await supabase.rpc('record_return', { p_product: pid, p_qty: Number(returnQty), p_sale: id, p_reason: returnReason })
+    setBusy(false)
+    if (e) return setError(errMsg(e))
+    await refresh(); toast('Return recorded — stock restored'); setReturning(false); setReturnQty(''); setReturnReason('')
   }
   async function cancel() {
     setBusy(true); setError('')
@@ -57,6 +70,7 @@ export default function SaleDetail() {
           {s.status === 'draft' && can('sales', 'create') && <Link className="btn-primary" to={`/sales/${id}/edit`}><Pencil size={14} />Edit & confirm</Link>}
           {confirmed && <Link className="btn-ghost" to={`/documents/invoice/${id}`} target="_blank"><Printer size={14} />Invoice</Link>}
           {confirmed && s.balance > 0 && (can('debts', 'create') || can('sales', 'create')) && <button className="btn-primary" onClick={() => setPaying(true)}><HandCoins size={14} />Receive payment</button>}
+          {s.stock_deducted_at && (can('inventory', 'create') || can('sales', 'edit')) && <button className="btn-ghost" onClick={() => { setReturning(true); setReturnItem(items.find((i) => i.product_id)?.product_id ?? '') }}><Undo2 size={14} />Record return</button>}
           {s.status !== 'cancelled' && can('sales', 'edit') && <button className="btn-ghost text-red-700" onClick={() => setCancelling(true)}><Ban size={14} />Cancel</button>}
         </>} />
       {error && <div className="mb-3"><Notice tone="red">{error}</Notice></div>}
@@ -102,12 +116,18 @@ export default function SaleDetail() {
               {can('sales', 'edit') || can('inventory', 'edit') ? (
                 <select className="input" value={s.delivery_status} onChange={(e) => setDelivery(e.target.value)} aria-label="Delivery status">{['pending', 'loading', 'dispatched', 'delivered'].map((d) => <option key={d} value={d}>{DELIVERY_LABEL[d]}</option>)}</select>
               ) : <DeliveryBadge status={s.delivery_status} />}
-              <p className="text-xs text-slate2-500">Stock deduction is handled by order fulfilment in Phase 3.</p>
+              <p className="text-xs text-slate2-500">{s.stock_deducted_at ? 'Stock was deducted when this order was dispatched (once only).' : 'Stock is deducted once, when you mark the order Dispatched or Delivered.'}</p>
             </section>)}
           {s.notes && <Notice tone="neutral">{s.notes}</Notice>}
         </aside>
       </div>
       {paying && <PaymentDialog kind="customer" partyId={s.customer_id} partyName={s.customers?.name ?? ''} focusId={id} onClose={() => setPaying(false)} />}
+      <Modal open={returning} onClose={() => setReturning(false)} title="Record goods returned" footer={<><button className="btn-ghost" onClick={() => setReturning(false)}>Cancel</button><button className="btn-primary" onClick={recordReturn} disabled={busy || !returnItem || !(Number(returnQty) > 0) || returnReason.trim().length < 3}>Return to stock</button></>}>
+        <div className="grid gap-3 sm:grid-cols-2"><Field label="Product"><select className="input" value={returnItem} onChange={(e) => setReturnItem(e.target.value)}>{items.filter((i) => i.product_id).map((i) => <option key={i.id} value={i.product_id!}>{i.description}</option>)}</select></Field>
+          <Field label="Quantity returned"><input className="input" inputMode="decimal" value={returnQty} onChange={(e) => setReturnQty(e.target.value.replace(/[^\d.]/g, ''))} /></Field>
+          <div className="sm:col-span-2"><Field label="Reason (required)"><input className="input" value={returnReason} onChange={(e) => setReturnReason(e.target.value)} /></Field></div></div>
+        <p className="mt-3 text-xs text-slate2-500">Goods go back into stock at the cost they left at. This does not change the invoice or the customer’s balance — refund the customer separately if needed.</p>
+        {error && <div className="mt-3"><Notice tone="red">{error}</Notice></div>}</Modal>
       <Modal open={cancelling} onClose={() => setCancelling(false)} title="Cancel this sale" footer={<><button className="btn-ghost" onClick={() => setCancelling(false)}>Keep sale</button><button className="btn-danger" onClick={cancel} disabled={busy || reason.trim().length < 3}>{busy ? 'Cancelling…' : 'Cancel sale'}</button></>}>
         <Notice tone="amber">Cancelling removes the invoice from revenue and the customer’s balance. Invoices with payments must have those payments reversed first. The record is kept for audit.</Notice>
         <div className="mt-3"><Field label="Reason (required)"><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} autoFocus /></Field></div>

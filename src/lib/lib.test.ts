@@ -19,5 +19,6 @@ describe('dates', () => {
 describe('format', () => {
   it('DD/MM/YYYY', () => expect(fmtDate('2026-03-07')).toBe('07/03/2026'))
   it('UGX', () => { expect(fmtUGX(1500000)).toBe('UGX 1,500,000'); expect(fmtNum(1234.5)).toBe('1,234.50') })
+  it('ignores float residue', () => { expect(fmtNum(576000.0000001)).toBe('576,000'); expect(fmtNum(0.1 + 0.2)).toBe('0.30') })
   it('compact', () => { expect(fmtCompact(1_250_000)).toBe('1.3M'); expect(fmtCompact(450_000)).toBe('450K') })
 })

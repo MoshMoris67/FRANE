@@ -179,7 +179,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
             {rule.category && (
               <Field label="Category">
                 <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                  <option value="">Select category…</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value="">Select category…</option>{cats.map((c) => <option key={c.id} value={c.id} disabled={c.tracks_inventory}>{c.name}{c.tracks_inventory ? ' — use Receive materials' : ''}</option>)}
                 </select>
               </Field>
             )}

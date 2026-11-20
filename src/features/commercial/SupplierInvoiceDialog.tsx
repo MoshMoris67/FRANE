@@ -8,7 +8,7 @@ import { toast } from '../../components/toast'
 
 export default function SupplierInvoiceDialog({ supplierId, supplierName, onClose }: { supplierId: string; supplierName: string; onClose: () => void }) {
   const accounts = useAccounts(); const cats = useCategories(); const settings = useSettings(); const refresh = useRefreshMoney()
-  const [f, setF] = useState({ no: '', date: today(), due: '', kind: 'materials' as 'materials' | 'expense', category: '', desc: '', amount: '', notes: '' })
+  const [f, setF] = useState({ no: '', date: today(), due: '', kind: 'expense' as const, category: '', desc: '', amount: '', notes: '' })
   const [payNow, setPayNow] = useState(false); const [pay, setPay] = useState({ account: '', amount: '', method: '', ref: '' })
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const key = useRef(crypto.randomUUID())
   const amount = Number(f.amount.replace(/,/g, '')) || 0
@@ -32,13 +32,10 @@ export default function SupplierInvoiceDialog({ supplierId, supplierName, onClos
     await refresh(); toast('Supplier invoice recorded'); onClose()
   }
   return (
-    <Modal open onClose={onClose} wide title={`New purchase / supplier invoice — ${supplierName}`} footer={<><button className="btn-ghost" onClick={onClose} disabled={busy}>Cancel</button><button className="btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save invoice'}</button></>}>
+    <Modal open onClose={onClose} wide title={`New expense invoice — ${supplierName}`} footer={<><button className="btn-ghost" onClick={onClose} disabled={busy}>Cancel</button><button className="btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save invoice'}</button></>}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="What is this?">
-          <select className="input" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value as 'materials' | 'expense' })}>
-            <option value="materials">Raw materials (cement, sand, aggregate…)</option><option value="expense">Expense / service (power, transport, repairs…)</option></select></Field>
-        {f.kind === 'expense' ? <Field label="Expense category"><select className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}><option value="">Select…</option>{(cats.data ?? []).filter((c) => c.kind === 'expense' && c.is_active).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
-          : <div className="self-end text-xs text-slate2-500">Materials are held as stock and only become a cost when used in production (Phase 3) — they are not expensed here.</div>}
+        <div className="sm:col-span-2"><Field label="Expense category"><select className="input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}><option value="">Select…</option>{(cats.data ?? []).filter((c) => c.kind === 'expense' && c.is_active && !c.tracks_inventory).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+          <p className="mt-1 text-xs text-slate2-500">For services and running costs (power, transport, repairs). Buying cement, sand or aggregate? Use <b>Receive materials</b> instead so stock is costed once, when used.</p></div>
         <Field label="Supplier's invoice no. (optional)"><input className="input" value={f.no} onChange={(e) => setF({ ...f, no: e.target.value })} /></Field>
         <Field label="Amount (UGX)" hint={amount > 0 ? fmtUGX(amount) : undefined}><input className="input" inputMode="decimal" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value.replace(/[^\d.,]/g, '') })} /></Field>
         <Field label="Invoice date"><input type="date" className="input" value={f.date} max={today()} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>

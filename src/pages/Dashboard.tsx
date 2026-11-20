@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck } from 'lucide-react'
+import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck, Boxes, Factory, Layers } from 'lucide-react'
 import clsx from 'clsx'
 import { PageHeader, Spinner, ErrorBox, Notice } from '../components/ui'
 import { useDashboard } from '../features/dashboard/useDashboard'
 import { buildAlerts } from '../features/dashboard/alerts'
-import { PeriodCharts, TrendCharts } from '../features/dashboard/Charts'
+import { PeriodCharts, TrendCharts, OperationsCharts } from '../features/dashboard/Charts'
 import { presetRange, PRESET_LABEL, type Preset, type Range } from '../lib/dates'
-import { fmtUGX, fmtDate, today } from '../lib/format'
+import { fmtUGX, fmtDate, fmtNum, today } from '../lib/format'
 import { TXN_LABEL } from '../lib/types'
 import { useRecord } from '../components/layout/RecordContext'
 import { useAuth } from '../auth/AuthContext'
@@ -108,7 +108,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi label="Monthly revenue" value={fmtUGX(d.month_revenue)} icon={TrendingUp} tone="green" to={q(presetRange('month'), '&type=income')} />
               <Kpi label="Monthly expenses" value={fmtUGX(d.month_expenses)} icon={TrendingDown} tone="red" to={q(presetRange('month'), '&type=expense')} />
-              <Kpi label="Estimated monthly profit" value={fmtUGX(d.month_revenue - d.month_expenses)} icon={Scale} tone={d.month_revenue - d.month_expenses >= 0 ? 'green' : 'red'} sub="Estimate: revenue − expenses. Excludes stock & cost of goods until Phase 3" />
+              <Kpi label="Estimated monthly profit" value={fmtUGX(d.month_revenue - d.month_expenses)} icon={Scale} tone={d.month_revenue - d.month_expenses >= 0 ? 'green' : 'red'} sub={d.cogs_incomplete > 0 ? 'Estimate — some dispatched goods have no cost recorded' : 'Estimate: revenue − cost of goods − operating expenses'} />
               <Kpi label="Sales invoiced today" value={fmtUGX(d.sales_today)} icon={ShoppingCart} to="/sales" sub="Confirmed invoices" />
             </div>
           </section>
@@ -124,6 +124,19 @@ export default function Dashboard() {
             </div>
           </section>
 
+          {can('inventory', 'view') && (
+          <section aria-label="Operations">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Production &amp; stock</h2>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="card p-4"><div className="flex items-center justify-between text-slate2-500"><span className="text-xs font-semibold uppercase tracking-wide">Produced today</span><Factory size={16} /></div>
+                {d.produced_today.length === 0 ? <p className="mt-2 font-display text-[1.7rem] font-bold leading-none">0</p> : <ul className="mt-1.5 space-y-0.5 text-sm">{d.produced_today.map((r) => <li key={r.category} className="flex justify-between gap-2"><span className="truncate">{r.category}</span><b className="tabular-nums">{fmtNum(r.qty)}</b></li>)}</ul>}</div>
+              <div className="card p-4"><div className="flex items-center justify-between text-slate2-500"><span className="text-xs font-semibold uppercase tracking-wide">Sold today (units)</span><ShoppingCart size={16} /></div>
+                {d.sold_today.length === 0 ? <p className="mt-2 font-display text-[1.7rem] font-bold leading-none">0</p> : <ul className="mt-1.5 space-y-0.5 text-sm">{d.sold_today.map((r) => <li key={r.category} className="flex justify-between gap-2"><span className="truncate">{r.category}</span><b className="tabular-nums">{fmtNum(r.qty)}</b></li>)}</ul>}</div>
+              <Kpi label="Current inventory" value={`${fmtNum(d.stock_units)} units`} icon={Boxes} to="/inventory" sub={`Finished goods ${fmtUGX(d.stock_value)} · materials ${fmtUGX(d.material_value)}`} />
+              <Kpi label="Batches in progress" value={String(d.batches_in_progress)} icon={Layers} to="/production" sub={d.low_stock_products.length ? `${d.low_stock_products.length} product(s) low on stock` : 'No low-stock products'} />
+            </div>
+          </section>)}
+
           <section aria-label="Financial overview" className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate2-200 px-4 py-3"><h2 className="text-sm font-semibold">Financial overview</h2><span className="text-xs text-slate2-500">{fmtDate(range.from)} – {fmtDate(range.to)}</span></div>
             <dl className="grid grid-cols-2 divide-slate2-200 sm:grid-cols-5 sm:divide-x">
@@ -135,6 +148,7 @@ export default function Dashboard() {
 
           <PeriodCharts d={d} range={range} />
           <TrendCharts d={d} />
+          {can('inventory', 'view') && <OperationsCharts d={d} />}
 
           <div className="grid gap-4 lg:grid-cols-3">
             <section className="card lg:col-span-2">
@@ -154,7 +168,7 @@ export default function Dashboard() {
             </section>
           </div>
 
-          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next:</span> blocks &amp; pavers produced, stock levels, low-stock and production alerts (Phase 3), budget overruns (Phase 4) and sales-by-product charts. They are intentionally not shown here rather than filled with placeholder numbers.</Notice>
+          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next:</span> budget overruns, unreconciled-account alerts and daily closing (Phase 4); full P&amp;L, cash-flow forecast and reports (Phase 5). Not shown yet rather than filled with placeholder numbers.</Notice>
         </div>
       )}
     </>

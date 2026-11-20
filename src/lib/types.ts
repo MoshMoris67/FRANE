@@ -9,7 +9,7 @@ export interface Account {
   current_balance: number; account_ref: string | null; description: string | null; allow_negative: boolean
   txn_count: number; last_txn_date: string | null
 }
-export interface Category { id: string; name: string; kind: 'income' | 'expense'; group_name: string | null; is_active: boolean; is_system: boolean; sort_order: number }
+export interface Category { id: string; name: string; kind: 'income' | 'expense'; group_name: string | null; is_active: boolean; is_system: boolean; sort_order: number; tracks_inventory: boolean }
 export interface Party { id: string; name: string; phone: string | null }
 export interface Txn {
   id: string; txn_no: string; txn_date: string; type: TxnType; direction: 'in' | 'out'; category_id: string | null
@@ -44,6 +44,15 @@ export interface DashboardData {
   payables_total: number; payables_overdue: number; payables_due_soon: number
   pending_orders: number; sales_today: number
   largest_debtors: { id: string; name: string; outstanding: number }[]
+  cogs: number; month_cogs: number; cogs_incomplete: number
+  cogs_daily: { date: string; amount: number }[]; cogs_monthly: { month: string; amount: number }[]; cogs_by_label: { name: string; amount: number }[]
+  produced_today: { category: string; qty: number }[]; sold_today: { category: string; qty: number }[]
+  stock_units: number; stock_value: number; material_value: number
+  low_stock_products: { id: string; name: string; stock: number; min: number }[]
+  low_stock_materials: { id: string; name: string; stock: number; min: number; unit: string }[]
+  batches_in_progress: number; negative_stock_count: number
+  sales_by_product: { name: string; qty: number; amount: number }[]; production_by_product: { name: string; qty: number }[]
+  inventory_movement: { date: string; in: number; out: number }[]
 }
 
 export const TXN_LABEL: Record<TxnType, string> = {
@@ -57,7 +66,7 @@ export const ROLE_LABEL: Record<Role, string> = { owner: 'Owner / Administrator'
 /* ---------- Phase 2 ---------- */
 export interface Product {
   id: string; sku: string; name: string; category_id: string | null; dimensions: string | null; description: string | null
-  unit: string; selling_price: number; production_cost_estimate: number; min_stock: number; status: 'active' | 'inactive'
+  unit: string; selling_price: number; production_cost_estimate: number; min_stock: number; status: 'active' | 'inactive'; current_stock: number; avg_cost: number
   product_categories?: { name: string } | null
 }
 export interface ProductCategory { id: string; name: string; is_active: boolean; sort_order: number }
@@ -77,7 +86,7 @@ export interface Sale {
   id: string; sale_no: string | null; sale_date: string; customer_id: string; status: 'draft' | 'confirmed' | 'cancelled'
   payment_status: 'unpaid' | 'partially_paid' | 'paid'; delivery_status: 'pending' | 'loading' | 'dispatched' | 'delivered' | 'cancelled'
   subtotal: number; discount: number; transport_charge: number; total: number; amount_paid: number; balance: number; due_date: string | null
-  salesperson_id: string | null; delivery_address: string | null; notes: string | null; cancel_reason: string | null; created_at: string
+  salesperson_id: string | null; stock_deducted_at: string | null; delivery_address: string | null; notes: string | null; cancel_reason: string | null; created_at: string
   customers?: { name: string; phone: string | null; location: string | null; customer_no: string } | null
   profiles?: { full_name: string } | null
 }
@@ -90,3 +99,13 @@ export const AGING_LABEL: Record<AgingBucket, string> = { current: 'Current', '1
 export const AGING_ORDER: AgingBucket[] = ['current', '1-30', '31-60', '61-90', '90+']
 export interface StatementRow { date: string; kind?: string; ref: string; description: string; debit?: number; credit?: number; invoiced?: number; paid?: number; balance: number }
 export interface Statement { opening: number; closing: number; rows: StatementRow[]; customer?: { id: string; name: string; phone: string | null; location: string | null; customer_no: string }; supplier?: { id: string; name: string; phone: string | null; supplier_no: string } }
+
+/* ---------- Phase 3 ---------- */
+export interface RawMaterial { id: string; material_no: string; name: string; unit: string; min_stock: number; current_stock: number; unit_cost: number; default_supplier_id: string | null; status: 'active' | 'inactive'; notes: string | null }
+export type StockKind = 'opening' | 'production' | 'sale' | 'return' | 'damage' | 'adjustment' | 'purchase' | 'consumption'
+export const STOCK_KIND_LABEL: Record<StockKind, string> = { opening: 'Opening stock', production: 'Produced', sale: 'Dispatched (sale)', return: 'Returned', damage: 'Damaged', adjustment: 'Adjustment', purchase: 'Purchased', consumption: 'Used in production' }
+export interface StockMovement { id: string; movement_date: string; kind: StockKind; quantity: number; unit_cost: number; balance_after: number; source_type: string | null; source_id: string | null; note: string | null; flagged_negative: boolean; created_at: string; products?: { name: string; sku: string; unit: string } | null; raw_materials?: { name: string; unit: string } | null }
+export type BatchStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled'
+export interface Batch { id: string; batch_no: string; production_date: string; product_id: string; qty_planned: number; qty_produced: number; qty_rejected: number; qty_accepted: number; status: BatchStatus; supervisor: string | null; material_cost: number; other_cost: number; total_cost: number; cost_per_unit: number | null; completed_date: string | null; notes: string | null; cancel_reason: string | null; products?: { name: string; unit: string; sku: string } | null }
+export interface BatchMaterial { id: string; material_id: string; quantity: number; unit_cost: number; total_cost: number; reversed: boolean; created_at: string; raw_materials?: { name: string; unit: string } | null }
+export interface BatchCost { id: string; kind: 'labour' | 'other'; description: string; worker_name: string | null; amount: number; paid: boolean; paid_txn_id: string | null; voided: boolean; void_reason: string | null; created_at: string }

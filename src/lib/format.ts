@@ -21,7 +21,8 @@ export function fmtDateTime(ts?: string | null): string {
 }
 
 export function fmtNum(n: number | null | undefined): string {
-  const v = Number(n ?? 0)
+  const raw = Number(n ?? 0)
+  const v = Math.abs(raw - Math.round(raw)) < 0.005 ? Math.round(raw) : raw // ignore floating-point residue
   return v.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 })
 }
 export const fmtUGX = (n: number | null | undefined) => `UGX ${fmtNum(n)}`

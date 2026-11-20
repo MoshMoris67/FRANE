@@ -89,6 +89,7 @@ begin
   perform pg_temp.fails('payment cannot exceed invoice total at sale', format('select save_sale(null,%L,current_date,%L,0,0,null,null,null,true,%L)', cu2, jsonb_build_array(jsonb_build_object('product_id',p2,'quantity',1,'unit_price',1000))::text, jsonb_build_object('account_id',bank,'amount',5000)::text), 'cannot exceed');
   perform pg_temp.fails('discount cannot exceed line value', format('select save_sale(null,%L,current_date,%L,0,0,null,null,null,true)', cu2, jsonb_build_array(jsonb_build_object('product_id',p2,'quantity',1,'unit_price',1000,'discount',5000))::text), 'exceeds the line');
   perform pg_temp.fails('empty invoice rejected', format('select save_sale(null,%L,current_date,%L,0,0,null,null,null,true)', cu2, '[]'), 'at least one');
+  perform record_opening_stock(p2, 100, 20000);
   perform set_delivery_status(s3,'dispatched');
   s4 := save_sale(null, cu2, current_date, jsonb_build_array(jsonb_build_object('product_id',p2,'quantity',1,'unit_price',1000)), 0,0,null,null,null,true);
   perform set_delivery_status(s4,'dispatched');
@@ -110,7 +111,7 @@ begin
   select id into cat from transaction_categories where name='Electricity';
   select (dashboard_summary(current_date,current_date)->>'expenses')::numeric into v;
   i1 := record_supplier_invoice(sup,'HC-100',current_date-3,null,'expense',cat,'Power bill',400000);
-  i2 := record_supplier_invoice(sup,'HC-101',current_date-1,null,'materials',null,'Cement 100 bags',1000000);
+  i2 := record_material_purchase(sup, current_date-1, 'HC-101', null, jsonb_build_array(jsonb_build_object('material_id',(select id from raw_materials where name='Cement'),'quantity',100,'line_total',1000000)));
   perform pg_temp.check('expense-kind supplier invoice recognised as expense once', (dashboard_summary(current_date-3,current_date-3)->>'expenses')::numeric >= 400000);
   perform pg_temp.check('materials invoice is not expensed (held as inventory)', (dashboard_summary(current_date-1,current_date-1)->>'expenses')::numeric < 1000000);
   perform pg_temp.check('payables total = 1,400,000', (dashboard_summary(current_date,current_date)->>'payables_total')::numeric=1400000);
@@ -124,7 +125,7 @@ begin
   perform reverse_transaction(t,'Wrong supplier');
   perform pg_temp.check('reversing supplier payment reopens invoices', (select outstanding from supplier_balances where id=sup)=1400000);
   perform pg_temp.fails('supplier payment over-allocation', format('select record_supplier_payment(%L,%L,100000,current_date,null,null,null,%L,false)', sup, bank, jsonb_build_array(jsonb_build_object('invoice_id',i1,'amount',999999))::text), 'exceeds');
-  i3 := record_supplier_invoice(sup,'HC-102',current_date,null,'materials',null,'Sand',200000, null, '[]', jsonb_build_object('account_id',bank,'amount',200000));
+  i3 := record_material_purchase(sup, current_date, 'HC-102', null, jsonb_build_array(jsonb_build_object('material_id',(select id from raw_materials where name='Sand'),'quantity',40,'line_total',200000)), null, jsonb_build_object('account_id',bank,'amount',200000));
   perform pg_temp.check('invoice paid at purchase is settled', (select payment_status from supplier_invoices where id=i3)='paid');
   perform pg_temp.check('supplier statement closing = outstanding - credit', (supplier_statement(sup,current_date-30,current_date)->>'closing')::numeric = (select outstanding - credit_balance from supplier_balances where id=sup));
   perform cancel_supplier_invoice(i2,'Duplicate entry');

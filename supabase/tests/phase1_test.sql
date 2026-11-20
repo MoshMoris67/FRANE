@@ -22,7 +22,7 @@ do $$ declare c uuid; ex uuid; cash uuid; mm uuid; bank uuid; cust uuid; k uuid:
 begin
   select id into cash from accounts where name='Cash'; select id into mm from accounts where name='Mobile'; select id into bank from accounts where name='Bank';
   select id into c from transaction_categories where name='Cash sales';
-  select id into ex from transaction_categories where name='Cement';
+  select id into ex from transaction_categories where name='Fuel';
   perform pg_temp.as_user('11111111-1111-1111-1111-111111111111');
 
   t := record_transaction('income', current_date, cash, 300000, 'Block sales', c, 'Cash', null, null,null,null,'[]',k);

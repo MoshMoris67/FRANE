@@ -8,6 +8,7 @@ import { useSupplierBalances } from '../features/commercial/hooks'
 import { SupplierDialog } from '../features/commercial/PartyDialog'
 import PaymentDialog from '../features/commercial/PaymentDialog'
 import SupplierInvoiceDialog from '../features/commercial/SupplierInvoiceDialog'
+import MaterialReceiptDialog from '../features/inventory/MaterialReceiptDialog'
 import { supabase, errMsg } from '../lib/supabase'
 import { fmtDate, fmtUGX, num } from '../lib/format'
 import type { SupplierInvoice, Txn } from '../lib/types'
@@ -18,7 +19,7 @@ import { toast } from '../components/toast'
 export default function SupplierDetail() {
   const { id = '' } = useParams(); const { can } = useAuth(); const refresh = useRefreshMoney()
   const balances = useSupplierBalances(); const s = balances.data?.find((x) => x.id === id)
-  const [tab, setTab] = useState<'invoices' | 'payments'>('invoices'); const [editing, setEditing] = useState(false); const [paying, setPaying] = useState(false); const [adding, setAdding] = useState(false)
+  const [tab, setTab] = useState<'invoices' | 'payments'>('invoices'); const [editing, setEditing] = useState(false); const [paying, setPaying] = useState(false); const [adding, setAdding] = useState(false); const [receiving, setReceiving] = useState(false)
   const [cancelId, setCancelId] = useState<string | null>(null); const [reason, setReason] = useState(''); const [error, setError] = useState('')
   const invs = useQuery({ queryKey: ['supplier-invoices', id], queryFn: async () => ((await supabase.from('supplier_invoices').select('*, transaction_categories(name)').eq('supplier_id', id).order('invoice_date', { ascending: false })).data ?? []).map((i) => ({ ...i, amount: num(i.amount), amount_paid: num(i.amount_paid), balance: num(i.balance) })) as unknown as SupplierInvoice[] })
   const pays = useQuery({ queryKey: ['supplier-payments', id], queryFn: async () => ((await supabase.from('transactions').select('*, accounts(name)').eq('supplier_id', id).eq('type', 'supplier_payment').order('txn_date', { ascending: false })).data ?? []).map((t) => ({ ...t, amount: num(t.amount) })) as unknown as Txn[] })
@@ -43,7 +44,7 @@ export default function SupplierDetail() {
         actions={<>
           {can('suppliers', 'edit') && <button className="btn-ghost" onClick={() => setEditing(true)}><Pencil size={14} />Edit</button>}
           <Link className="btn-ghost" to={`/documents/supplier-statement/${s.id}`} target="_blank"><FileText size={14} />Statement</Link>
-          {can('suppliers', 'create') && <><button className="btn-ghost" onClick={() => setPaying(true)}><HandCoins size={14} />Pay supplier</button><button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />New invoice</button></>}
+          {can('suppliers', 'create') && <><button className="btn-ghost" onClick={() => setPaying(true)}><HandCoins size={14} />Pay supplier</button><button className="btn-ghost" onClick={() => setAdding(true)}><Plus size={14} />Expense invoice</button><button className="btn-primary" onClick={() => setReceiving(true)}><Plus size={16} />Receive materials</button></>}
         </>} />
       <div className="mb-4 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate2-600">{s.contact_person && <span>Contact: {s.contact_person}</span>}{s.phone && <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1"><Phone size={13} />{s.phone}</a>}{s.location && <span className="inline-flex items-center gap-1"><MapPin size={13} />{s.location}</span>}{s.status === 'inactive' && <Badge>Inactive</Badge>}</div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">{stats.map(([l, v, c]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', c)}>{v}</p></div>)}</div>
@@ -62,6 +63,7 @@ export default function SupplierDetail() {
       </div>
       {editing && <SupplierDialog supplier={s} onClose={() => setEditing(false)} />}
       {paying && <PaymentDialog kind="supplier" partyId={s.id} partyName={s.name} onClose={() => setPaying(false)} />}
+      {receiving && <MaterialReceiptDialog supplierId={s.id} onClose={() => setReceiving(false)} />}
       {adding && <SupplierInvoiceDialog supplierId={s.id} supplierName={s.name} onClose={() => setAdding(false)} />}
       <Modal open={!!cancelId} onClose={() => setCancelId(null)} title="Cancel supplier invoice" footer={<><button className="btn-ghost" onClick={() => setCancelId(null)}>Keep</button><button className="btn-danger" onClick={cancelInvoice} disabled={reason.trim().length < 3}>Cancel invoice</button></>}>
         <Field label="Reason (required)"><input className="input" autoFocus value={reason} onChange={(e) => setReason(e.target.value)} /></Field>{error && <div className="mt-3"><Notice tone="red">{error}</Notice></div>}</Modal>
