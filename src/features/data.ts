@@ -47,6 +47,8 @@ export function useSettings() {
       return {
         company: { name: 'FRANE CONCRETE FACTORY', address: '', phone: '', email: '', tax_id: '', tagline: '', ...(m.company ?? {}) } as CompanySettings,
         payment_methods: (m.payment_methods ?? ['Cash']) as string[],
+        numbering: { invoice_prefix: 'INV', receipt_prefix: 'RCT', ...(m.numbering ?? {}) } as { invoice_prefix: string; receipt_prefix: string },
+        credit_terms: { customer_days: 30, supplier_days: 30, ...(m.credit_terms ?? {}) } as { customer_days: number; supplier_days: number },
         locale: m.locale ?? { currency: 'UGX', date_format: 'DD/MM/YYYY', timezone: 'Africa/Kampala' },
       }
     },
@@ -56,5 +58,5 @@ export function useSettings() {
 /** Invalidate everything that depends on ledger totals. */
 export function useRefreshMoney() {
   const qc = useQueryClient()
-  return () => Promise.all(['accounts', 'dashboard', 'cashbook', 'transactions'].map((k) => qc.invalidateQueries({ queryKey: [k] })))
+  return () => qc.invalidateQueries() // money touches everything: balances, sales, debts, dashboards
 }

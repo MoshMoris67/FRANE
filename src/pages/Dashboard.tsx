@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer } from 'lucide-react'
+import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Badge, Notice } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Notice } from '../components/ui'
 import { useDashboard } from '../features/dashboard/useDashboard'
 import { buildAlerts } from '../features/dashboard/alerts'
 import { PeriodCharts, TrendCharts } from '../features/dashboard/Charts'
@@ -108,8 +108,19 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Kpi label="Monthly revenue" value={fmtUGX(d.month_revenue)} icon={TrendingUp} tone="green" to={q(presetRange('month'), '&type=income')} />
               <Kpi label="Monthly expenses" value={fmtUGX(d.month_expenses)} icon={TrendingDown} tone="red" to={q(presetRange('month'), '&type=expense')} />
-              <Kpi label="Estimated monthly profit" value={fmtUGX(d.month_revenue - d.month_expenses)} icon={Scale} tone={d.month_revenue - d.month_expenses >= 0 ? 'green' : 'red'} sub="Cash-basis estimate — excludes credit sales, stock & cost of goods until Phases 2–3" />
-              <div className="card flex flex-col justify-center gap-1 border-dashed p-4 text-xs text-slate2-500"><Badge tone="orange">Phase 2</Badge>Outstanding customer &amp; supplier balances appear once Sales and Suppliers are live.</div>
+              <Kpi label="Estimated monthly profit" value={fmtUGX(d.month_revenue - d.month_expenses)} icon={Scale} tone={d.month_revenue - d.month_expenses >= 0 ? 'green' : 'red'} sub="Estimate: revenue − expenses. Excludes stock & cost of goods until Phase 3" />
+              <Kpi label="Sales invoiced today" value={fmtUGX(d.sales_today)} icon={ShoppingCart} to="/sales" sub="Confirmed invoices" />
+            </div>
+          </section>
+
+          <section aria-label="Receivables and payables">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Customers &amp; suppliers</h2>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Kpi label="Outstanding customer balances" value={fmtUGX(d.receivables_total)} icon={Users} tone={d.receivables_overdue > 0 ? 'red' : 'orange'} to="/debts" sub={d.receivables_overdue > 0 ? `${fmtUGX(d.receivables_overdue)} overdue` : 'Nothing overdue'} />
+              <Kpi label="Outstanding supplier balances" value={fmtUGX(d.payables_total)} icon={Truck} to="/debts?tab=payables" sub={d.payables_overdue > 0 ? `${fmtUGX(d.payables_overdue)} overdue` : d.payables_due_soon > 0 ? `${fmtUGX(d.payables_due_soon)} due within 7 days` : 'Nothing due soon'} />
+              <Kpi label="Orders awaiting fulfilment" value={String(d.pending_orders)} icon={PackageCheck} to="/sales?delivery=open&from=2000-01-01" sub="Pending or loading" />
+              <div className="card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate2-500">Largest debtors</p>
+                {d.largest_debtors.length === 0 ? <p className="mt-2 text-xs text-slate2-500">None</p> : <ul className="mt-1.5 space-y-1 text-sm">{d.largest_debtors.slice(0, 3).map((x) => <li key={x.id} className="flex justify-between gap-2"><Link to={`/customers/${x.id}`} className="truncate hover:text-brand-600">{x.name}</Link><span className="tabular-nums">{fmtUGX(x.outstanding)}</span></li>)}</ul>}</div>
             </div>
           </section>
 
@@ -143,7 +154,7 @@ export default function Dashboard() {
             </section>
           </div>
 
-          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next:</span> orders awaiting fulfilment, blocks &amp; pavers produced/sold, stock levels, receivable &amp; payable alerts, budget overruns and sales/production charts arrive with Phases 2–4. They are intentionally not shown here rather than filled with placeholder numbers.</Notice>
+          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next:</span> blocks &amp; pavers produced, stock levels, low-stock and production alerts (Phase 3), budget overruns (Phase 4) and sales-by-product charts. They are intentionally not shown here rather than filled with placeholder numbers.</Notice>
         </div>
       )}
     </>

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Runs migration + Phase 1 tests against a throwaway local PostgreSQL (needs psql and a running server).
+# Applies all migrations + runs every test file against a throwaway local PostgreSQL.
 # Usage: PGHOST=/tmp/pgt PGPORT=5544 PGUSER=postgres ./supabase/tests/run.sh
 set -e
 D=$(dirname "$0"); P="psql -q"
 $P -c "drop database if exists frane_test" -c "create database frane_test"
 $P -c "create role anon nologin" 2>/dev/null || true; $P -c "create role authenticated nologin" 2>/dev/null || true
 $P -d frane_test -f "$D/stub_supabase.sql"
-$P -d frane_test -f "$D/../migrations/0001_foundation.sql"
-$P -d frane_test -f "$D/phase1_test.sql" 2>&1 | grep -E "PASS|FAIL|ERROR" | sed 's/.*NOTICE:  //'
+for m in "$D"/../migrations/*.sql; do $P -v ON_ERROR_STOP=1 -d frane_test -f "$m"; done
+for t in "$D"/phase*_test.sql; do echo "== $(basename "$t")"; $P -d frane_test -f "$t" 2>&1 | grep -E "PASS|FAIL|ERROR" | sed 's/.*NOTICE:  //'; done

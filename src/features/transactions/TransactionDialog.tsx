@@ -72,7 +72,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
       if (!toAccountId) return setError('Select the destination account.')
       if (toAccountId === accountId) return setError('Source and destination must differ.')
     } else {
-      if (!description.trim()) return setError('Enter a description.')
+      if (!description.trim() && !rule.partyRequired) return setError('Enter a description.')
       if (rule.category && !categoryId) return setError(`Select a ${rule.category} category.`)
       if (rule.partyRequired && !partyId) return setError(`Select the ${rule.party}.`)
     }
@@ -89,6 +89,14 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
         const { error: e } = await supabase.rpc('record_transfer', {
           p_date: date, p_from: accountId, p_to: toAccountId, p_amount: value, p_description: description || null,
           p_reference: reference || null, p_notes: notes || null, p_idempotency_key: key.current, p_force: force,
+        })
+        if (e) throw e
+      } else if (type === 'customer_payment' || type === 'supplier_payment') {
+        // collections / supplier payments are applied to invoices (oldest first) by the database
+        const isCust = type === 'customer_payment'
+        const { error: e } = await supabase.rpc(isCust ? 'record_customer_payment' : 'record_supplier_payment', {
+          [isCust ? 'p_customer_id' : 'p_supplier_id']: partyId, p_account_id: accountId, p_amount: value, p_date: date, p_method: method || null,
+          p_reference: reference || null, p_notes: [description, notes].filter(Boolean).join(' — ') || null, p_allocations: [], p_auto: true, p_idempotency_key: key.current,
         })
         if (e) throw e
       } else {
@@ -187,7 +195,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
                   : <div className="mt-1.5 flex gap-1.5"><input className="input !py-1.5" autoFocus placeholder="Name" value={newParty} onChange={(e) => setNewParty(e.target.value)} /><button type="button" className="btn-dark !py-1.5" onClick={addParty}>Add</button><button type="button" className="btn-ghost !py-1.5" onClick={() => setNewParty(null)}>×</button></div>}
               </div>
             )}
-            <div className="sm:col-span-2"><Field label="Description"><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. 200 hollow blocks to Mukasa" /></Field></div>
+            <div className="sm:col-span-2"><Field label={rule.partyRequired ? "Description (optional)" : "Description"}><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. 200 hollow blocks to Mukasa" /></Field></div>
           </>
         )}
         <Field label="Reference no. (optional)"><input className="input" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Receipt / MoMo / cheque no." /></Field>

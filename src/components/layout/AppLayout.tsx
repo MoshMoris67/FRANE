@@ -19,7 +19,7 @@ function SidebarLinks({ collapsed, onNavigate }: { collapsed?: boolean; onNaviga
             isActive ? 'bg-brand-500 text-white' : 'text-slate2-300 hover:bg-charcoal-700 hover:text-white', collapsed && 'justify-center px-2')}>
           <n.icon size={18} className="shrink-0" />
           {!collapsed && <span className="flex-1 truncate">{n.label}</span>}
-          {!collapsed && n.phase > 1 && <span className="rounded bg-charcoal-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate2-400 group-hover:bg-charcoal-800">P{n.phase}</span>}
+          {!collapsed && !n.built && <span className="rounded bg-charcoal-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate2-400 group-hover:bg-charcoal-800">P{n.phase}</span>}
         </NavLink>
       ))}
     </nav>
