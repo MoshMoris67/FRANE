@@ -10,19 +10,19 @@ import { supabase, errMsg } from '../lib/supabase'
 import { fmtDate, fmtDateTime, fmtUGX, num } from '../lib/format'
 import type { Sale, SaleItem } from '../lib/types'
 import { useAuth } from '../auth/AuthContext'
-import { useRefreshMoney } from '../features/data'
+import { useRefreshMoney, useProfileNames } from '../features/data'
 import { toast } from '../components/toast'
 
 interface Alloc { id: string; amount: number; reversed: boolean; created_at: string; transactions: { id: string; txn_date: string; receipt_no: string | null; payment_method: string | null; reference: string | null; accounts: { name: string } | null } | null }
 
 export default function SaleDetail() {
-  const { id = '' } = useParams(); const { can } = useAuth(); const refresh = useRefreshMoney()
+  const { id = '' } = useParams(); const { can } = useAuth(); const refresh = useRefreshMoney(); const names = useProfileNames()
   const [returning, setReturning] = useState(false); const [returnItem, setReturnItem] = useState(''); const [returnQty, setReturnQty] = useState(''); const [returnReason, setReturnReason] = useState(''); const [paying, setPaying] = useState(false); const [cancelling, setCancelling] = useState(false); const [reason, setReason] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
   const { data, isLoading, error: qErr } = useQuery({
     queryKey: ['sale', id],
     queryFn: async () => {
       const [s, i, a] = await Promise.all([
-        supabase.from('sales').select('*, customers(name, phone, location, customer_no), profiles:salesperson_id(full_name)').eq('id', id).single(),
+        supabase.from('sales').select('*, customers(name, phone, location, customer_no)').eq('id', id).single(),
         supabase.from('sale_items').select('*').eq('sale_id', id).order('line_no'),
         supabase.from('payment_allocations').select('id, amount, reversed, created_at, transactions:payment_txn_id(id, txn_date, receipt_no, payment_method, reference, accounts(name))').eq('sale_id', id).order('created_at'),
       ])
@@ -107,7 +107,7 @@ export default function SaleDetail() {
             <h2 className="font-semibold">Customer</h2>
             <Link to={`/customers/${s.customer_id}`} className="font-medium text-brand-600">{s.customers?.name}</Link>
             {s.customers?.phone && <p className="text-slate2-600">{s.customers.phone}</p>}{s.customers?.location && <p className="text-slate2-600">{s.customers.location}</p>}
-            <div className="border-t border-slate2-100 pt-2 text-slate2-600"><p>Salesperson: {s.profiles?.full_name || '—'}</p>{confirmed && <p>Due: {fmtDate(s.due_date)}</p>}<p>Created: {fmtDateTime(s.created_at)}</p></div>
+            <div className="border-t border-slate2-100 pt-2 text-slate2-600"><p>Salesperson: {(s.salesperson_id && names.data?.get(s.salesperson_id)) || '—'}</p>{confirmed && <p>Due: {fmtDate(s.due_date)}</p>}<p>Created: {fmtDateTime(s.created_at)}</p></div>
           </section>
           {confirmed && (
             <section className="card space-y-2 p-4 text-sm">

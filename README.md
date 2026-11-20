@@ -16,10 +16,14 @@ with aging; product catalogue & price list; printable/PDF invoices, receipts and
 accepted/rejected output and cost per unit; controlled stock deduction at dispatch; returns, damage, adjustments, opening stock; COGS and stock losses in the
 dashboard; production reports; low-stock / shortage / negative-stock alerts.
 
-Phases 4–5 (expenses/payroll/budgets/daily closing, P&L/forecast/reports) are tagged P4–P5 in the sidebar and not built yet.
+**Phase 4 (Management) — complete:** Expenses register (incurred vs paid vs owing, part-payments, approval thresholds, receipts, duplicate check, edit/cancel with audit, charts and Excel/CSV/PDF export, one list across expenses, supplier expense invoices and legacy cash expenses);
+payroll & labour (employees, daily/monthly pay, overtime, allowances, deductions, approve → pay, summaries by day/week/month, labour charged to a production batch); budgets (monthly/quarterly/yearly by category, department, total or production, actual vs budget, last-period comparison, over-budget alerts, every change audited with a reason);
+daily closing (expected vs counted cash, note/coin counting, variance explanation, optional manager approval, reopen with reason, printable report) and account reconciliation (optional audited adjustment); dashboard controls and alerts.
+
+Phase 5 (P&L, cash-flow forecast, reports centre, exports) is tagged P5 in the sidebar and not built yet.
 
 ## Setup
-1. Create a Supabase project. In the SQL editor run, in order, `supabase/migrations/0001_foundation.sql`, `0002_commercial.sql`, then `0003_manufacturing.sql`.
+1. Create a Supabase project. In the SQL editor run, in order, `supabase/migrations/0001_foundation.sql`, `0002_commercial.sql`, then `0003_manufacturing.sql`, then `0004_management.sql`.
 2. `cp .env.example .env` and fill in `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`.
 3. `npm install && npm run dev`
 4. Open the app and **create the first account — it automatically becomes the Owner.** Other staff sign up and wait
@@ -44,10 +48,15 @@ Phases 4–5 (expenses/payroll/budgets/daily closing, P&L/forecast/reports) are 
 - Batch labour/other costs are ledger expenses tagged with the batch; they are excluded from period operating expenses and reach profit as COGS when the goods are dispatched. A cancelled batch releases any cash already paid back into operating expenses.
 - Dashboard costs = operating expenses + cost of goods dispatched + stock losses. If dispatched goods have no cost on record the dashboard says profit is overstated.
 - Stock can't go negative silently: only a manager can override, and the movement is flagged and alerted.
+- Expenses are accrual records: incurred when recorded (and approved), paid later by `expense_payment` ledger rows allocated to them. A payment is never a second expense. Pending/rejected expenses are not counted and cannot be paid. The person who recorded an expense (or payroll, or a closing) cannot approve it unless they are the Owner.
+- Payroll cost is incurred when approved (take-home pay) and paid by a ledger payment; payroll tagged to an open batch is that batch's labour cost (inventory cost) rather than operating expense. Payroll data is restricted by the `payroll` permission (off for managers by default).
+- Budgets are written only through `save_budget` (reason + before/after audit). Actuals come from approved expenses, supplier expense invoices, legacy cash expenses and payroll, or batch costs for production budgets.
+- Daily closing never edits the ledger; it records expected vs counted, requires an explanation for variances, and a reconciliation row. Reopening needs a reason and is audited.
+- Staff names for "recorded by" labels come from a names-only view; the profiles table (phones etc.) stays private.
 - Internal database helpers are not callable by signed-in users: migration 0003 revokes `EXECUTE` from `authenticated` on everything and re-grants an explicit allow-list (Supabase otherwise grants it by default).
 - Supplier/payables data is restricted to the `suppliers` permission (cashiers see customer debts only).
 
 ## Tests
 - `npm test` — date/format helpers.
-- `supabase/tests/run.sh` — 180 database checks (Phases 1–3) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
+- `supabase/tests/run.sh` — 269 database checks (Phases 1–4) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
   (`PGHOST=… PGPORT=… PGUSER=postgres ./supabase/tests/run.sh`).

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Landmark, Banknote, Smartphone, Wallet, Pencil, ArrowLeftRight } from 'lucide-react'
 import clsx from 'clsx'
+import { useQuery } from '@tanstack/react-query'
+import ReconcileDialog from '../features/closing/ReconcileDialog'
 import { PageHeader, Spinner, ErrorBox, Empty, Modal, Field, Notice, Badge } from '../components/ui'
 import { useAccounts, useRefreshMoney } from '../features/data'
 import { supabase, errMsg } from '../lib/supabase'
@@ -18,7 +20,8 @@ export default function Accounts() {
   const { data, isLoading, error, refetch } = useAccounts()
   const { can } = useAuth(); const { openRecord } = useRecord()
   const [editing, setEditing] = useState<Account | 'new' | null>(null)
-  const [showInactive, setShowInactive] = useState(false)
+  const [showInactive, setShowInactive] = useState(false); const [recon, setRecon] = useState<string | null>(null)
+  const last = useQuery({ queryKey: ['last-recon'], queryFn: async () => { const { data } = await supabase.from('reconciliations').select('account_id, reconciliation_date, difference').order('reconciliation_date', { ascending: false }); const m = new Map<string, { date: string; diff: number }>(); for (const r of data ?? []) if (!m.has(r.account_id)) m.set(r.account_id, { date: r.reconciliation_date, diff: Number(r.difference) }); return m } })
   const list = (data ?? []).filter((a) => showInactive || a.status === 'active')
   const total = (data ?? []).filter((a) => a.status === 'active').reduce((s, a) => s + a.current_balance, 0)
 
@@ -47,13 +50,14 @@ export default function Accounts() {
                   </div>
                   <p className={clsx('mt-4 font-display text-3xl font-bold tabular-nums', a.current_balance < 0 && 'text-red-600')}>{fmtUGX(a.current_balance)}</p>
                   <div className="mt-2 flex justify-between text-xs text-slate2-500"><span>Opening {fmtUGX(a.opening_balance)}</span><span>{a.txn_count} movements{a.last_txn_date && ` · last ${fmtDate(a.last_txn_date)}`}</span></div>
-                  <div className="mt-3 flex gap-2 border-t border-slate2-100 pt-3 text-xs font-semibold"><Link className="text-brand-600" to={`/cashbook`}>Cashbook</Link><span className="text-slate2-300">·</span><Link className="text-brand-600" to={`/transactions?account=${a.id}`}>Transactions</Link></div>
+                  <div className="mt-3 flex gap-2 border-t border-slate2-100 pt-3 text-xs font-semibold"><Link className="text-brand-600" to={`/cashbook`}>Cashbook</Link><span className="text-slate2-300">·</span><Link className="text-brand-600" to={`/transactions?account=${a.id}`}>Transactions</Link>{a.status === 'active' && (can('daily_closing', 'create') || can('accounts', 'edit')) && <><span className="text-slate2-300">·</span><button className="text-brand-600" onClick={() => setRecon(a.id)}>Reconcile</button></>}<span className="ml-auto font-normal text-slate2-500">{last.data?.get(a.id) ? `Reconciled ${fmtDate(last.data.get(a.id)!.date)}${last.data.get(a.id)!.diff ? ` (diff ${fmtUGX(last.data.get(a.id)!.diff)})` : ''}` : a.txn_count > 0 ? 'Never reconciled' : ''}</span></div>
                 </div>) })}
             </div>
           )}
-          <Notice tone="neutral"><span className="font-semibold">Reconciliation</span> (compare system vs counted balance) arrives with Daily Closing in Phase 4.</Notice>
+          <Notice tone="neutral"><span className="font-semibold">Reconciliation</span> compares the system balance with the real count or statement. Use <Link className="underline" to="/daily-closing">Daily Closing</Link> for end-of-day cash counts.</Notice>
         </>
       )}
+      {recon && <ReconcileDialog accountId={recon} onClose={() => setRecon(null)} />}
       {editing && <AccountForm account={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
     </>
   )

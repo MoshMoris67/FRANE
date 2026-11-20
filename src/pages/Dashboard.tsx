@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck, Boxes, Factory, Layers } from 'lucide-react'
+import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck, Receipt, PiggyBank, Boxes, Factory, Layers, ClipboardCheck } from 'lucide-react'
 import clsx from 'clsx'
 import { PageHeader, Spinner, ErrorBox, Notice } from '../components/ui'
 import { useDashboard } from '../features/dashboard/useDashboard'
@@ -137,6 +137,17 @@ export default function Dashboard() {
             </div>
           </section>)}
 
+          {(can('expenses', 'view') || can('daily_closing', 'view')) && (
+          <section aria-label="Management">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Controls</h2>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Kpi label="Unpaid expenses" value={fmtUGX(d.unpaid_expenses)} icon={Receipt} to="/expenses" sub={d.pending_expense_approvals ? `${d.pending_expense_approvals} awaiting approval` : 'Incurred, not yet paid'} />
+              {d.payroll_unpaid != null && <Kpi label="Payroll awaiting payment" value={fmtUGX(d.payroll_unpaid)} icon={Users} to="/expenses?tab=payroll" sub={d.payroll_pending ? `${d.payroll_pending} awaiting approval` : 'Approved, unpaid'} />}
+              <Kpi label="Budgets at risk" value={String(d.budget_alerts.length)} icon={PiggyBank} tone={d.budget_alerts.some((b) => b.pct >= 100) ? 'red' : 'neutral'} to="/budgets" sub={d.budget_alerts[0] ? `${d.budget_alerts[0].label}: ${d.budget_alerts[0].pct}% used` : 'All within budget'} />
+              <Kpi label="Unreconciled accounts" value={String(d.unreconciled_accounts.length)} icon={ClipboardCheck} tone={d.unreconciled_accounts.length ? 'red' : 'neutral'} to="/daily-closing?tab=reconciliations" sub={d.closings_pending ? `${d.closings_pending} closing(s) to approve` : 'Counted recently'} />
+            </div>
+          </section>)}
+
           <section aria-label="Financial overview" className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate2-200 px-4 py-3"><h2 className="text-sm font-semibold">Financial overview</h2><span className="text-xs text-slate2-500">{fmtDate(range.from)} – {fmtDate(range.to)}</span></div>
             <dl className="grid grid-cols-2 divide-slate2-200 sm:grid-cols-5 sm:divide-x">
@@ -168,7 +179,7 @@ export default function Dashboard() {
             </section>
           </div>
 
-          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next:</span> budget overruns, unreconciled-account alerts and daily closing (Phase 4); full P&amp;L, cash-flow forecast and reports (Phase 5). Not shown yet rather than filled with placeholder numbers.</Notice>
+          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next (Phase 5):</span> full Profit &amp; Loss, cash-flow forecast and the reports centre. Not shown yet rather than filled with placeholder numbers.</Notice>
         </div>
       )}
     </>

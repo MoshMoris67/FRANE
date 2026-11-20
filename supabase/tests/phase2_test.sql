@@ -65,7 +65,7 @@ begin
 
   -- reverse the 800k payment -> allocations released, invoices reopened
   select (r->>'txn_id')::uuid into t;
-  perform pg_temp.fails('allocated payment amount cannot be edited', format('select edit_transaction(%L,current_date,%L,1,%L,null,null,null,null,%L)', t, 'x', cash, 'test'), 'allocated');
+  perform pg_temp.fails('allocated payment amount cannot be edited', format('select edit_transaction(%L,current_date,%L,1,%L,null,null,null,null,%L)', t, 'x', cash, 'test'), 'linked');
   perform reverse_transaction(t, 'Bounced');
   perform pg_temp.check('reversal reopens invoices', (select payment_status from sales where id=s1)='partially_paid' and (select amount_paid from sales where id=s1)=300000 and (select payment_status from sales where id=s2)='unpaid');
   perform pg_temp.check('outstanding restored 705000', (select outstanding from customer_balances where id=cu)=705000 and (select credit_balance from customer_balances where id=cu)=0);

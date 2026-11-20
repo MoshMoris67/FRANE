@@ -12,7 +12,7 @@ export default function AuditTab() {
   })
   return (
     <div className="space-y-3">
-      <select className="input max-w-xs" value={table} onChange={(e) => setTable(e.target.value)}><option value="">All records</option>{['transactions', 'accounts', 'transaction_categories', 'settings', 'role_permissions', 'user_roles', 'profiles'].map((t) => <option key={t}>{t}</option>)}</select>
+      <select className="input max-w-xs" value={table} onChange={(e) => setTable(e.target.value)}><option value="">All records</option>{['transactions', 'expenses', 'payroll_records', 'budgets', 'daily_closings', 'reconciliations', 'sales', 'supplier_invoices', 'production_batches', 'inventory_movements', 'accounts', 'transaction_categories', 'settings', 'role_permissions', 'user_roles', 'profiles'].map((t) => <option key={t}>{t}</option>)}</select>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} />}
       {data && (data.length === 0 ? <div className="card"><Empty title="No audit entries yet" /></div> : (
         <div className="card divide-y divide-slate2-100">{data.map((l) => (

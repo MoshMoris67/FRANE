@@ -2,7 +2,7 @@ export type Role = 'owner' | 'manager' | 'cashier' | 'supervisor' | 'storekeeper
 export type AccountType = 'cash' | 'bank' | 'mobile_money' | 'other'
 export type TxnType =
   | 'income' | 'expense' | 'transfer' | 'customer_payment' | 'supplier_payment' | 'loan_received'
-  | 'loan_repayment' | 'owner_contribution' | 'owner_withdrawal' | 'refund' | 'adjustment'
+  | 'loan_repayment' | 'owner_contribution' | 'owner_withdrawal' | 'refund' | 'adjustment' | 'expense_payment'
 
 export interface Account {
   id: string; name: string; type: AccountType; status: 'active' | 'inactive'; opening_balance: number
@@ -53,12 +53,15 @@ export interface DashboardData {
   batches_in_progress: number; negative_stock_count: number
   sales_by_product: { name: string; qty: number; amount: number }[]; production_by_product: { name: string; qty: number }[]
   inventory_movement: { date: string; in: number; out: number }[]
+  budget_alerts: { id: string; label: string; period_type: string; budget: number; actual: number; pct: number }[]
+  unreconciled_accounts: { id: string; name: string; last: string | null }[]
+  pending_expense_approvals: number; unpaid_expenses: number; payroll_unpaid: number | null; payroll_pending: number | null; closings_pending: number
 }
 
 export const TXN_LABEL: Record<TxnType, string> = {
   income: 'Income', expense: 'Expense', transfer: 'Account transfer', customer_payment: 'Customer payment',
   supplier_payment: 'Supplier payment', loan_received: 'Loan received', loan_repayment: 'Loan repayment',
-  owner_contribution: 'Owner contribution', owner_withdrawal: 'Owner withdrawal', refund: 'Refund', adjustment: 'Adjustment',
+  owner_contribution: 'Owner contribution', owner_withdrawal: 'Owner withdrawal', refund: 'Refund', adjustment: 'Adjustment', expense_payment: 'Expense payment',
 }
 export const ACCOUNT_TYPE_LABEL: Record<AccountType, string> = { cash: 'Cash', bank: 'Bank', mobile_money: 'Mobile money', other: 'Other' }
 export const ROLE_LABEL: Record<Role, string> = { owner: 'Owner / Administrator', manager: 'Manager', cashier: 'Cashier / Accounts clerk', supervisor: 'Production supervisor', storekeeper: 'Storekeeper' }
@@ -88,7 +91,6 @@ export interface Sale {
   subtotal: number; discount: number; transport_charge: number; total: number; amount_paid: number; balance: number; due_date: string | null
   salesperson_id: string | null; stock_deducted_at: string | null; delivery_address: string | null; notes: string | null; cancel_reason: string | null; created_at: string
   customers?: { name: string; phone: string | null; location: string | null; customer_no: string } | null
-  profiles?: { full_name: string } | null
 }
 export interface SaleItem { id: string; line_no: number; product_id: string | null; description: string; unit: string; quantity: number; unit_price: number; discount: number; line_total: number }
 export interface Receivable { sale_id: string; sale_no: string; customer_id: string; customer_name: string; customer_phone: string | null; sale_date: string; due_date: string | null; total: number; amount_paid: number; balance: number; days_overdue: number; aging_bucket: AgingBucket; effective_status: string }
@@ -109,3 +111,17 @@ export type BatchStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled'
 export interface Batch { id: string; batch_no: string; production_date: string; product_id: string; qty_planned: number; qty_produced: number; qty_rejected: number; qty_accepted: number; status: BatchStatus; supervisor: string | null; material_cost: number; other_cost: number; total_cost: number; cost_per_unit: number | null; completed_date: string | null; notes: string | null; cancel_reason: string | null; products?: { name: string; unit: string; sku: string } | null }
 export interface BatchMaterial { id: string; material_id: string; quantity: number; unit_cost: number; total_cost: number; reversed: boolean; created_at: string; raw_materials?: { name: string; unit: string } | null }
 export interface BatchCost { id: string; kind: 'labour' | 'other'; description: string; worker_name: string | null; amount: number; paid: boolean; paid_txn_id: string | null; voided: boolean; void_reason: string | null; created_at: string }
+
+/* ---------- Phase 4 ---------- */
+export interface ExpenseRow {
+  source: 'expense' | 'supplier_invoice' | 'legacy'; id: string; ref_no: string; expense_date: string; category_id: string | null; category_name: string | null; group_name: string | null
+  description: string; payee: string | null; amount: number; amount_paid: number; balance: number; payment_status: 'unpaid' | 'partially_paid' | 'paid'
+  approval_status: 'pending' | 'approved' | 'rejected'; status: 'open' | 'cancelled'; notes: string | null; attachments: Attachment[]; created_at: string
+}
+export interface Employee { id: string; employee_no: string; name: string; role: string | null; phone: string | null; employment_type: 'permanent' | 'casual' | 'daily' | 'production'; pay_basis: 'daily' | 'monthly'; rate: number; status: 'active' | 'inactive'; start_date: string | null; notes: string | null }
+export const EMPLOYMENT_LABEL = { permanent: 'Permanent', casual: 'Casual', daily: 'Daily labour', production: 'Production labour' } as const
+export interface PayrollRecord { id: string; payroll_no: string; employee_id: string; period_start: string; period_end: string; workdays: number | null; rate: number; pay_basis: string; base_pay: number; overtime_hours: number; overtime_rate: number; overtime_pay: number; allowances: number; deductions: number; total_pay: number; batch_id: string | null; status: 'pending' | 'approved' | 'paid' | 'cancelled'; paid_date: string | null; notes: string | null; employees?: { name: string; employee_no: string; role: string | null } | null; production_batches?: { batch_no: string } | null }
+export interface BudgetRow { id: string; scope_type: 'total' | 'group' | 'category' | 'production'; category_id: string | null; group_name: string | null; label: string; notes: string | null; budget: number; actual: number; remaining: number; variance: number; pct_used: number; previous_actual: number; status: 'ok' | 'warning' | 'over' }
+export interface BudgetReport { period_type: 'month' | 'quarter' | 'year'; period_start: string; period_end: string; threshold_pct: number; rows: BudgetRow[] }
+export interface Closing { id: string; closing_date: string; account_id: string; opening_balance: number; receipts: number; payments: number; expected_balance: number; counted_balance: number; variance: number; denominations: Record<string, number> | null; explanation: string | null; status: 'submitted' | 'approved' | 'rejected' | 'reopened'; closed_by: string | null; closed_at: string; approved_by: string | null; approved_at: string | null; review_note: string | null; reopen_reason: string | null; accounts?: { name: string; type: AccountType } | null }
+export interface Reconciliation { id: string; account_id: string; reconciliation_date: string; system_balance: number; actual_balance: number; difference: number; notes: string | null; adjustment_txn_id: string | null; closing_id: string | null; created_at: string; accounts?: { name: string } | null }

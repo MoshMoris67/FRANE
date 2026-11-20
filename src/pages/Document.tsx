@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Printer, Download } from 'lucide-react'
 import { Spinner, ErrorBox } from '../components/ui'
 import { supabase } from '../lib/supabase'
-import { useSettings } from '../features/data'
+import { useSettings, useProfileNames } from '../features/data'
 import { companyLines, downloadDocPDF, type DocModel } from '../lib/docs'
 import { fmtDate, fmtUGX, num, today } from '../lib/format'
 import { addDays } from '../lib/dates'
@@ -11,20 +11,20 @@ import type { Sale, SaleItem, Statement } from '../lib/types'
 import { LogoMark } from '../components/Logo'
 
 export default function Document() {
-  const { kind = '', id = '' } = useParams(); const [sp, setSp] = useSearchParams(); const settings = useSettings()
+  const { kind = '', id = '' } = useParams(); const [sp, setSp] = useSearchParams(); const settings = useSettings(); const names = useProfileNames()
   const from = sp.get('from') ?? addDays(today(), -365); const to = sp.get('to') ?? today()
   const isStatement = kind.endsWith('statement')
 
   const { data: model, isLoading, error } = useQuery({
-    queryKey: ['document', kind, id, from, to], enabled: !!settings.data,
+    queryKey: ['document', kind, id, from, to, names.data?.size ?? 0], enabled: !!settings.data && !names.isLoading,
     queryFn: async (): Promise<DocModel> => {
       const company = settings.data!.company
       if (kind === 'invoice') {
-        const [s, i] = await Promise.all([supabase.from('sales').select('*, customers(name, phone, location, customer_no), profiles:salesperson_id(full_name)').eq('id', id).single(), supabase.from('sale_items').select('*').eq('sale_id', id).order('line_no')])
+        const [s, i] = await Promise.all([supabase.from('sales').select('*, customers(name, phone, location, customer_no)').eq('id', id).single(), supabase.from('sale_items').select('*').eq('sale_id', id).order('line_no')])
         if (s.error) throw s.error
         const sale = s.data as unknown as Sale; const items = (i.data ?? []) as SaleItem[]
         return { company, title: 'Invoice', number: sale.sale_no ?? 'DRAFT', date: fmtDate(sale.sale_date), filename: `Invoice_${sale.sale_no}`,
-          meta: [['Due date', fmtDate(sale.due_date)], ['Salesperson', sale.profiles?.full_name || '—']], partyLabel: 'Bill to',
+          meta: [['Due date', fmtDate(sale.due_date)], ['Salesperson', (sale.salesperson_id && names.data?.get(sale.salesperson_id)) || '—']], partyLabel: 'Bill to',
           party: [sale.customers?.name ?? '', sale.customers?.phone ?? '', sale.customers?.location ?? '', sale.delivery_address ? `Deliver to: ${sale.delivery_address}` : ''].filter(Boolean),
           columns: ['#', 'Description', 'Qty', 'Unit price', 'Discount', 'Amount'], numericCols: [0, 2, 3, 4, 5],
           rows: items.map((x) => [String(x.line_no), x.description, `${num(x.quantity)} ${x.unit}`, fmtUGX(num(x.unit_price)), num(x.discount) ? fmtUGX(num(x.discount)) : '—', fmtUGX(num(x.line_total))]),
@@ -66,6 +66,20 @@ export default function Document() {
           columns: ['Date', 'Reference', 'Description', 'Invoiced', 'Paid', 'Balance'], numericCols: [3, 4, 5],
           rows: st.rows.map((x) => [fmtDate(x.date), x.ref, x.description, num(x.invoiced) ? fmtUGX(num(x.invoiced)) : '', num(x.paid) ? fmtUGX(num(x.paid)) : '', fmtUGX(num(x.balance))]),
           totals: [['CLOSING BALANCE (we owe)', fmtUGX(num(st.closing)), true]], footer: `${company.name} · Supplier statement` }
+      }
+      if (kind === 'daily-closing') {
+        const c = await supabase.from('daily_closings').select('*, accounts(name, type)').eq('id', id).single()
+        if (c.error) throw c.error
+        const x = c.data as unknown as { closing_date: string; opening_balance: number; receipts: number; payments: number; expected_balance: number; counted_balance: number; variance: number; denominations: Record<string, number> | null; explanation: string | null; status: string; closed_by: string | null; closed_at: string; approved_by: string | null; approved_at: string | null; review_note: string | null; reopen_reason: string | null; accounts: { name: string } | null }
+        const dens = Object.entries(x.denominations ?? {}).sort((a, b) => Number(b[0]) - Number(a[0]))
+        return { company, title: 'Daily closing report', number: x.status.toUpperCase(), date: fmtDate(x.closing_date), filename: `Closing_${x.accounts?.name}_${x.closing_date}`,
+          meta: [['Closed by', (x.closed_by && names.data?.get(x.closed_by)) || '—'], ['Approved by', (x.approved_by && names.data?.get(x.approved_by)) || (x.status === 'submitted' ? 'Awaiting approval' : '—')]],
+          partyLabel: 'Account', party: [x.accounts?.name ?? ''],
+          columns: ['Item', 'Amount'], numericCols: [1],
+          rows: [['Opening balance', fmtUGX(num(x.opening_balance))], ['Total receipts', fmtUGX(num(x.receipts))], ['Total payments', fmtUGX(num(x.payments))], ['Expected closing balance', fmtUGX(num(x.expected_balance))], ['Actual counted balance', fmtUGX(num(x.counted_balance))],
+            ...dens.map(([d, n]) => [`   ${Number(d).toLocaleString()} × ${n}`, fmtUGX(Number(d) * Number(n))])],
+          totals: [['VARIANCE', fmtUGX(num(x.variance)), true]],
+          notes: [x.explanation && `Explanation: ${x.explanation}`, x.review_note && `Review note: ${x.review_note}`, x.reopen_reason && `Reopened: ${x.reopen_reason}`].filter(Boolean).join('\n') || undefined, footer: `${company.name} · Daily closing ${x.accounts?.name} ${x.closing_date}` }
       }
       throw new Error('Unknown document type')
     },

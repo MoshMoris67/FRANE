@@ -8,7 +8,7 @@ export interface TypeRule {
 
 export const TYPE_RULES: TypeRule[] = [
   { type: 'income', label: 'Income (sale / other income)', direction: 'in', category: 'income', party: 'customer', effect: 'Money in. Counts as revenue.' },
-  { type: 'expense', label: 'Expense', direction: 'out', category: 'expense', party: 'supplier', effect: 'Money out. Counts as an expense.' },
+  { type: 'expense', label: 'Expense', direction: 'out', category: 'expense', party: 'supplier', effect: 'Money out. Counts as an expense (recorded in the Expenses register, paid in full from this account). To record an expense you have not paid yet, use Expenses → Record expense.' },
   { type: 'customer_payment', label: 'Customer payment (debt collection)', direction: 'in', party: 'customer', partyRequired: true, effect: 'Money in. NOT new revenue — the sale was already counted when it was made. Applied automatically to the customer’s oldest unpaid invoices (use the customer page to choose invoices).' },
   { type: 'supplier_payment', label: 'Supplier payment', direction: 'out', party: 'supplier', partyRequired: true, effect: 'Money out. Settles supplier invoices (oldest due first); not a new expense.' },
   { type: 'loan_received', label: 'Loan received', direction: 'in', effect: 'Money in. NOT revenue — it is a liability.' },

@@ -60,3 +60,11 @@ export function useRefreshMoney() {
   const qc = useQueryClient()
   return () => qc.invalidateQueries() // money touches everything: balances, sales, debts, dashboards
 }
+
+export function useProfileNames() {
+  return useQuery({
+    queryKey: ['profile_names'],
+    queryFn: async () => { const { data } = await supabase.from('profile_names').select('id, full_name'); return new Map((data ?? []).map((p) => [p.id as string, (p.full_name as string) || '—'])) },
+    staleTime: 5 * 60_000,
+  })
+}

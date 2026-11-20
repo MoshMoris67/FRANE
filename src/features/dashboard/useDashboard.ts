@@ -25,6 +25,8 @@ export function useDashboard(r: Range) {
         expense_by_category: [...d.expense_by_category, ...d.cogs_by_label.filter((x) => num(x.amount) > 0).map((x) => ({ name: x.name, amount: num(x.amount) }))].sort((a, b) => num(b.amount) - num(a.amount)),
         cogs: num(d.cogs), month_cogs: num(d.month_cogs), cogs_incomplete: num(d.cogs_incomplete), stock_units: num(d.stock_units), stock_value: num(d.stock_value), material_value: num(d.material_value),
         batches_in_progress: num(d.batches_in_progress), negative_stock_count: num(d.negative_stock_count),
+        pending_expense_approvals: num(d.pending_expense_approvals), unpaid_expenses: num(d.unpaid_expenses), closings_pending: num(d.closings_pending),
+        payroll_unpaid: d.payroll_unpaid == null ? null : num(d.payroll_unpaid), payroll_pending: d.payroll_pending == null ? null : num(d.payroll_pending),
         opening: num(d.opening), inflows: num(d.inflows), outflows: num(d.outflows), closing: num(d.closing), revenue: num(d.revenue),
         expenses: num(d.expenses) + num(d.cogs), collections: num(d.collections), month_revenue: num(d.month_revenue), month_expenses: num(d.month_expenses) + num(d.month_cogs),
         receivables_total: num(d.receivables_total), receivables_overdue: num(d.receivables_overdue), receivables_overdue_count: num(d.receivables_overdue_count),

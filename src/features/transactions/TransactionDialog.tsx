@@ -91,6 +91,13 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
           p_reference: reference || null, p_notes: notes || null, p_idempotency_key: key.current, p_force: force,
         })
         if (e) throw e
+      } else if (type === 'expense') {
+        // expenses go through the expense register: incurred + paid in full from the chosen account
+        const { error: e } = await supabase.rpc('record_expense', {
+          p_date: date, p_category: categoryId, p_description: description, p_amount: value, p_payee: null, p_notes: notes || null, p_attachments: uploaded,
+          p_payment: { account_id: accountId, amount: value, method: method || null, reference: reference || null }, p_idempotency_key: key.current, p_force: force,
+        })
+        if (e) throw e
       } else if (type === 'customer_payment' || type === 'supplier_payment') {
         // collections / supplier payments are applied to invoices (oldest first) by the database
         const isCust = type === 'customer_payment'
