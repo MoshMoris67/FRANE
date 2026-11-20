@@ -273,7 +273,9 @@ begin
   select coalesce(sum(total),0) / v_hist into v_avg from sales where status = 'confirmed' and sale_date > v_today - v_hist and sale_date <= v_today;
   -- share of invoiced value historically paid on the dn of sale (data-driven unless overridden)
   v_share := coalesce(nullif(v_a->>'new_sales_cash_pct','')::numeric,
-     (select least(100, round(100 * coalesce(sum(pa.amount) filter (where t.txn_date = s.sale_date),0) / nullif(sum(distinct s.total),0), 0)) from sales s left join payment_allocations pa on pa.sale_id = s.id and not pa.reversed left join transactions t on t.id = pa.payment_txn_id where s.status = 'confirmed' and s.sale_date > v_today - 90),
+     (select least(100, round(100 * coalesce((select sum(pa.amount) from payment_allocations pa join transactions t on t.id = pa.payment_txn_id join sales s on s.id = pa.sale_id
+                                               where not pa.reversed and t.txn_date = s.sale_date and s.status = 'confirmed' and s.sale_date > v_today - 90), 0)
+                                      / nullif((select sum(total) from sales where status = 'confirmed' and sale_date > v_today - 90), 0), 0))),
      50);
   select coalesce(sum(amount),0) / 90.0 into v_rec_exp from transactions where status = 'posted' and not is_reversal and txn_date > v_today - 90 and txn_date <= v_today and batch_id is null
      and (type = 'expense' or (type::text = 'expense_payment' and not exists (select 1 from payroll_records p where p.paid_txn_id = transactions.id)));
@@ -288,16 +290,21 @@ begin
   unpaid_exp as (select greatest(1, e.expense_date + v_edelay - v_today) dn, e.balance amt from expenses e where e.status = 'open' and e.approval_status = 'approved' and e.balance > 0),
   unpaid_pay as (select greatest(1, v_paydelay) dn, coalesce(sum(total_pay),0) amt from payroll_records where status = 'approved'),
   planned as (select (item_date - v_today) dn, direction, amount from forecast_items where active and item_date > v_today and item_date <= v_today + 90),
+  coll_a as (select dn, sum(amt) amt from coll group by dn),
+  sup_a as (select dn, sum(amt) amt from sup group by dn),
+  exp_a as (select dn, sum(amt) amt from unpaid_exp group by dn),
+  pay_a as (select dn, sum(amt) amt from unpaid_pay group by dn),
+  plan_a as (select dn, sum(amount) filter (where direction = 'in') pin, sum(amount) filter (where direction = 'out') pout from planned group by dn),
   rows_ as (
     select d.dn, d.dt,
-      coalesce((select sum(amt) from coll c where c.dn = d.dn),0)::numeric as in_collections,
+      coalesce(ca.amt,0)::numeric as in_collections,
       (case when v_newsales then v_avg * v_share / 100 + case when d.dn >= 1 + v_days + v_delay then v_avg * (1 - v_share / 100) * v_cur / 100 else 0 end else 0 end)::numeric as in_new_sales,
-      coalesce((select sum(amount) from planned p where p.dn = d.dn and p.direction = 'in'),0)::numeric as in_planned,
-      coalesce((select sum(amt) from sup s where s.dn = d.dn),0)::numeric as out_suppliers,
-      (coalesce((select sum(amt) from unpaid_pay u where u.dn = d.dn),0) + case when v_recpay and d.dn > v_paydelay then v_rec_pay else 0 end)::numeric as out_payroll,
-      (coalesce((select sum(amt) from unpaid_exp e where e.dn = d.dn),0) + case when v_recexp then v_rec_exp else 0 end)::numeric as out_expenses,
-      coalesce((select sum(amount) from planned p where p.dn = d.dn and p.direction = 'out'),0)::numeric as out_planned
-    from days d),
+      coalesce(pl.pin,0)::numeric as in_planned,
+      coalesce(sa.amt,0)::numeric as out_suppliers,
+      (coalesce(pa.amt,0) + case when v_recpay and d.dn > v_paydelay then v_rec_pay else 0 end)::numeric as out_payroll,
+      (coalesce(ea.amt,0) + case when v_recexp then v_rec_exp else 0 end)::numeric as out_expenses,
+      coalesce(pl.pout,0)::numeric as out_planned
+    from days d left join coll_a ca on ca.dn = d.dn left join sup_a sa on sa.dn = d.dn left join exp_a ea on ea.dn = d.dn left join pay_a pa on pa.dn = d.dn left join plan_a pl on pl.dn = d.dn),
   calc as (select r.*, in_collections + in_new_sales + in_planned - out_suppliers - out_payroll - out_expenses - out_planned as net,
                   v_open + sum(in_collections + in_new_sales + in_planned - out_suppliers - out_payroll - out_expenses - out_planned) over (order by dn) as balance from rows_ r)
   select jsonb_agg(jsonb_build_object('day', dn, 'date', dt, 'in_collections', round(in_collections,0), 'in_new_sales', round(in_new_sales,0), 'in_planned', in_planned, 'out_suppliers', round(out_suppliers,0),

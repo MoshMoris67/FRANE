@@ -16,7 +16,7 @@ export default function Suppliers() {
     <>
       <PageHeader title="Suppliers" subtitle={`${fmtUGX((data ?? []).reduce((s, x) => s + x.outstanding, 0))} owed to suppliers`}
         actions={can('suppliers', 'create') ? <button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add supplier</button> : undefined} />
-      <div className="card mb-4 p-3"><div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search suppliers…" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
+      <div className="card mb-4 p-3"><div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search suppliers…" aria-label="Search suppliers" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}
       {data && (list.length === 0 ? <div className="card"><Empty icon={<Truck size={22} />} title="No suppliers yet">Add your cement, sand and aggregate suppliers to track purchases and what you owe.</Empty></div> : (
         <div className="card overflow-hidden">

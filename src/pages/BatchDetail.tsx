@@ -69,7 +69,7 @@ export default function BatchDetail() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <section className="card"><h2 className="border-b border-slate2-200 px-4 py-3 text-sm font-semibold">Materials used</h2>
             {mats.length === 0 ? <p className="p-4 text-sm text-slate2-500">{b.status === 'in_progress' ? 'No materials recorded yet.' : 'None.'}</p> : (
               <ul className="divide-y divide-slate2-100">{mats.map((m) => (

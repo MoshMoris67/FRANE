@@ -23,7 +23,8 @@ daily closing (expected vs counted cash, note/coin counting, variance explanatio
 **Phase 5 (Analytics) — complete:** Profit & Loss (accrual, with previous-period comparison, product profitability, an “estimated” banner when costing is incomplete, and a memo of what is deliberately *not* in profit); cash-flow statement; provisional balance sheet; daily/monthly summaries;
 cash-flow **forecast** (7/30/60/90 days, adjustable collection and payment assumptions, planned items, shortage alerts — always labelled as a projection); a library of 35 reports with date/product/customer/supplier/category/account filters and Excel/CSV/PDF export; a filterable audit log with before/after diffs and CSV export; a data-integrity check.
 
-**Not built yet:** bulk CSV/Excel import of historical data (opening balances, debts, stock, sales) and the final QA pass (Phase 6).
+**Phase 6 (Migration & quality assurance) — complete:** bulk CSV/Excel import for 11 kinds of data with column matching, a server-side dry run, all-or-nothing commit and duplicate protection; opening debts that never count as revenue/expense; historical sales/expenses that count in their own periods without touching cash or stock;
+complete backup export (Excel/JSON); company logo; purchase-record document; installable on phones (PWA); and the QA suite below. Documentation: `docs/DEPLOYMENT.md` (go-live), `docs/USER_GUIDE.md` (daily use), `docs/SPEC_COVERAGE.md` (requirement-by-requirement status and honest gaps).
 
 ## Setup
 1. Create a Supabase project. In the SQL editor run, in order, `supabase/migrations/0001_foundation.sql`, `0002_commercial.sql`, then `0003_manufacturing.sql`, `0004_management.sql`, then `0005_analytics.sql`.
@@ -62,7 +63,20 @@ cash-flow **forecast** (7/30/60/90 days, adjustable collection and payment assum
 - Internal database helpers are not callable by signed-in users: migration 0003 revokes `EXECUTE` from `authenticated` on everything and re-grants an explicit allow-list (Supabase otherwise grants it by default).
 - Supplier/payables data is restricted to the `suppliers` permission (cashiers see customer debts only).
 
-## Tests
+## Quality assurance
+| What | Command | Covers |
+|---|---|---|
+| Unit | `npm test` | CSV/Excel parsing, date/number normalisation, real CSV/Excel/PDF export round-trips, formatting |
+| Database rules | `PGHOST=… PGPORT=… PGUSER=postgres npm run test:db` | ~390 checks over phases 1–6: ledger identities, allocation, stock/costing, P&L ties, forecast, imports, a 200-cell role × operation matrix, a 115-cell table-visibility matrix, anonymous lock-down, no direct writes to money tables |
+| Concurrency | `bash supabase/tests/concurrency.sh` | Parallel sessions racing on the same account, invoice, request key and stock: no overdraft, no over-allocation, no double dispatch, no oversell |
+| Volume | `bash supabase/tests/perf.sh` | 200k ledger rows + 20k invoices; every screen/report under 2 s (dashboard ≈0.5 s, cashbook ≈0.1 s) |
+| Browser | `npm run qa` | Every page at 360/390/768/1366 px: no console errors, no horizontal scroll, labelled controls, ≥32 px tap targets; real downloads (CSV/Excel/PDF); import flow; role-restricted navigation |
+| Integrity (live data) | Settings → Backup & demo data → *Run integrity check* | 16 invariants re-verified on production data |
+
+The database tests need a local PostgreSQL 14+ (they stub Supabase's `auth`/`storage` schemas); the browser QA needs `npm i -D playwright && npx playwright install chromium`.
+
+## Tests (details)
+
 - `npm test` — date/format helpers.
-- `supabase/tests/run.sh` — 326 database checks (Phases 1–5) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
+- `supabase/tests/run.sh` — ~390 database checks (Phases 1–6) (balances, transfers, reversals, edits, RLS, roles, audit, demo data) against a scratch local PostgreSQL
   (`PGHOST=… PGPORT=… PGUSER=postgres ./supabase/tests/run.sh`).

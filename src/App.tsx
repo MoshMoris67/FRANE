@@ -13,7 +13,6 @@ import Cashbook from './pages/Cashbook'
 import Transactions from './pages/Transactions'
 import Accounts from './pages/Accounts'
 import Settings from './pages/Settings'
-import ComingSoon from './pages/ComingSoon'
 import Customers from './pages/Customers'
 import CustomerDetail from './pages/CustomerDetail'
 import Sales from './pages/Sales'
@@ -39,7 +38,7 @@ function Gate() {
   if (loading) return <div className="min-h-dvh bg-charcoal-900"><Spinner /></div>
   if (!session) return <Login />
   if (!perms?.role || !perms.active) return <NoAccess />
-  const first = NAV.find((n) => can(n.module, 'view') && n.phase === 1)
+  const first = NAV.find((n) => can(n.module, 'view'))
   const guard = (module: string, el: React.ReactElement, action: 'view' | 'create' = 'view') => (can(module, action) ? el : <Navigate to={first?.path ?? '/'} replace />)
   return (
     <Routes>
@@ -51,7 +50,7 @@ function Gate() {
         <Route path="/sales/new" element={guard('sales', <SaleForm />, 'create')} />
         <Route path="/sales/:id/edit" element={guard('sales', <SaleForm />, 'create')} />
         <Route path="/sales/:id" element={guard('sales', <SaleDetail />)} />
-        {NAV.map((n) => <Route key={n.key} path={n.path} element={can(n.module, 'view') ? (BUILT[n.key] ?? <ComingSoon />) : <Navigate to={first?.path ?? '/'} replace />} />)}
+        {NAV.map((n) => <Route key={n.key} path={n.path} element={can(n.module, 'view') ? BUILT[n.key] : <Navigate to={first?.path ?? '/'} replace />} />)}
         <Route path="*" element={<Navigate to={first?.path ?? '/'} replace />} />
       </Route>
     </Routes>

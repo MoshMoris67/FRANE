@@ -9,21 +9,39 @@ import { today } from '../../lib/format'
 export default function DataTab() {
   const [busy, setBusy] = useState(''); const [error, setError] = useState(''); const [checks, setChecks] = useState<{ name: string; ok: boolean; detail: string }[] | null>(null); const refresh = useRefreshMoney()
 
-  async function backup() {
+  const BACKUP_TABLES = ['accounts', 'transaction_categories', 'transactions', 'customers', 'suppliers', 'products', 'product_categories', 'raw_materials', 'employees', 'sales', 'sale_items', 'payment_allocations', 'supplier_invoices',
+    'supplier_payment_allocations', 'expenses', 'expense_payments', 'payroll_records', 'production_batches', 'production_materials', 'production_costs', 'inventory_movements', 'material_movements', 'budgets', 'daily_closings',
+    'reconciliations', 'forecast_items', 'import_batches', 'settings', 'role_permissions', 'audit_logs'] as const
+  const [progress, setProgress] = useState('')
+  async function loadAll() {
+    const data: Record<string, Record<string, unknown>[]> = {}
+    for (const t of BACKUP_TABLES) {
+      setProgress(`Reading ${t}…`); const rows: Record<string, unknown>[] = []
+      for (let from = 0; ; from += 1000) {
+        const q = supabase.from(t).select('*').range(from, from + 999)
+        const { data: page, error: e } = await (t === 'settings' || t === 'role_permissions' ? q : q.order('created_at', { ascending: true }))
+        if (e) throw e
+        rows.push(...((page ?? []) as Record<string, unknown>[])); if ((page?.length ?? 0) < 1000) break
+      }
+      data[t] = rows
+    }
+    setProgress(''); return data
+  }
+  async function backup(format: 'xlsx' | 'json') {
     setBusy('backup'); setError('')
     try {
-      const XLSX = await import('xlsx')
-      const wb = XLSX.utils.book_new()
-      const tables = ['accounts', 'transaction_categories', 'customers', 'suppliers', 'settings'] as const
-      for (const t of tables) { const { data, error: e } = await supabase.from(t).select('*'); if (e) throw e; XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data ?? []), t.slice(0, 31)) }
-      const rows: Record<string, unknown>[] = []
-      for (let from = 0; ; from += 1000) {
-        const { data, error: e } = await supabase.from('transactions').select('*').order('created_at').range(from, from + 999)
-        if (e) throw e; rows.push(...(data ?? []).map((r) => ({ ...r, attachments: JSON.stringify(r.attachments) }))); if ((data?.length ?? 0) < 1000) break
+      const data = await loadAll(); const stamp = today(); const counts = Object.entries(data).map(([k, v]) => ({ table: k, rows: v.length }))
+      if (format === 'json') {
+        const blob = new Blob([JSON.stringify({ company: 'FRANE CONCRETE FACTORY', exported_at: new Date().toISOString(), tables: data }, null, 1)], { type: 'application/json' })
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `FRANE_backup_${stamp}.json`; document.body.appendChild(a); a.click(); a.remove()
+      } else {
+        const XLSX = await import('xlsx'); const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ note: 'FRANE CONCRETE FACTORY — full data export', exported_at: new Date().toISOString() }, {}, ...counts]), 'README')
+        for (const [t, rows] of Object.entries(data)) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v !== null && typeof v === 'object' ? JSON.stringify(v) : v])))), t.slice(0, 31))
+        XLSX.writeFile(wb, `FRANE_backup_${stamp}.xlsx`)
       }
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'transactions')
-      XLSX.writeFile(wb, `FRANE_backup_${today()}.xlsx`); toast(`Backup exported (${rows.length} transactions)`)
-    } catch (e) { setError(errMsg(e)) } finally { setBusy('') }
+      toast(`Backup exported (${counts.reduce((n, c) => n + c.rows, 0).toLocaleString()} records)`)
+    } catch (e) { setError(errMsg(e)) } finally { setBusy(''); setProgress('') }
   }
   async function integrity() {
     setBusy('integrity'); setError('')
@@ -42,8 +60,8 @@ export default function DataTab() {
     <div className="max-w-2xl space-y-4">
       {error && <Notice tone="red">{error}</Notice>}
       <div className="card p-5"><h3 className="font-semibold">Backup / export all financial records</h3>
-        <p className="mt-1 text-sm text-slate2-500">Downloads one Excel workbook with accounts, categories, customers, suppliers, settings and every transaction (including reversals). Keep a copy regularly — it can be used for recovery and reconciliation.</p>
-        <button className="btn-dark mt-3" onClick={backup} disabled={!!busy}><Download size={15} />{busy === 'backup' ? 'Exporting…' : 'Download backup (.xlsx)'}</button></div>
+        <p className="mt-1 text-sm text-slate2-500">Downloads every record in the system — transactions (including reversals), sales, stock movements, payroll, budgets, closings, settings and the audit log — with all IDs, so it can be used for reconciliation or rebuilding. Keep a dated copy regularly. (Your hosting provider’s database backups are the primary safety net — see the deployment guide.)</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2"><button className="btn-dark" onClick={() => backup('xlsx')} disabled={!!busy}><Download size={15} />{busy === 'backup' ? 'Exporting…' : 'Excel workbook (.xlsx)'}</button><button className="btn-ghost" onClick={() => backup('json')} disabled={!!busy}><Download size={15} />JSON (.json)</button>{progress && <span className="text-xs text-slate2-500">{progress}</span>}</div></div>
       <div className="card p-5"><h3 className="font-semibold">Data integrity check</h3>
         <p className="mt-1 text-sm text-slate2-500">Verifies that balances, allocations, stock and costs all agree with the ledger. Run it after imports or if a number looks wrong.</p>
         <button className="btn-dark mt-3" onClick={integrity} disabled={!!busy}><ShieldCheck size={15} />{busy === 'integrity' ? 'Checking…' : 'Run integrity check'}</button>

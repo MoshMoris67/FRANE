@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "qa": "bash qa/run.sh",
+    "test:db": "bash supabase/tests/run.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

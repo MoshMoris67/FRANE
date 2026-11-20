@@ -19,7 +19,6 @@ function SidebarLinks({ collapsed, onNavigate }: { collapsed?: boolean; onNaviga
             isActive ? 'bg-brand-500 text-white' : 'text-slate2-300 hover:bg-charcoal-700 hover:text-white', collapsed && 'justify-center px-2')}>
           <n.icon size={18} className="shrink-0" />
           {!collapsed && <span className="flex-1 truncate">{n.label}</span>}
-          {!collapsed && !n.built && <span className="rounded bg-charcoal-700 px-1.5 py-0.5 text-[10px] font-semibold text-slate2-400 group-hover:bg-charcoal-800">P{n.phase}</span>}
         </NavLink>
       ))}
     </nav>
@@ -50,7 +49,7 @@ function Shell() {
   const { openRecord } = useRecord()
   const { data: settings } = useSettings()
   const loc = useLocation()
-  const name = settings?.company.name ?? 'FRANE CONCRETE FACTORY'
+  const name = settings?.company.name ?? 'FRANE CONCRETE FACTORY'; const logo = settings?.company.logo_url
   const canRecord = can('transactions', 'create')
   const toggle = () => setCollapsed((c) => { try { localStorage.setItem('frane.sidebar', c ? '0' : '1') } catch { /* ignore */ } return !c })
 
@@ -66,7 +65,7 @@ function Shell() {
       {/* Desktop sidebar */}
       <aside className={clsx('no-print sticky top-0 hidden h-dvh shrink-0 flex-col bg-charcoal-900 transition-all lg:flex', collapsed ? 'w-[68px]' : 'w-64')}>
         <div className={clsx('flex h-16 items-center border-b border-charcoal-700 px-4', collapsed && 'justify-center px-0')}>
-          {collapsed ? <LogoMark size={32} /> : <Brand name={name} />}
+          {collapsed ? <LogoMark size={32} url={logo} /> : <Brand name={name} logoUrl={logo} />}
         </div>
         <SidebarLinks collapsed={collapsed} />
         <button onClick={toggle} className="mx-2 mb-1 flex items-center justify-center gap-2 rounded-md py-2 text-xs text-slate2-400 hover:bg-charcoal-700 hover:text-white" aria-label="Collapse sidebar">
@@ -81,7 +80,7 @@ function Shell() {
           <div className="absolute inset-0 bg-charcoal-950/60" />
           <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-charcoal-900" onClick={(e) => e.stopPropagation()}>
             <div className="flex h-14 items-center justify-between border-b border-charcoal-700 px-4">
-              <Brand name={name} compact />
+              <Brand name={name} compact logoUrl={logo} />
               <button onClick={() => setDrawer(false)} aria-label="Close menu" className="text-slate2-300"><X size={20} /></button>
             </div>
             <SidebarLinks onNavigate={() => setDrawer(false)} />
@@ -94,7 +93,7 @@ function Shell() {
         {/* Mobile top bar */}
         <header className="no-print sticky top-0 z-30 flex h-14 items-center justify-between bg-charcoal-900 px-3 lg:hidden">
           <button onClick={() => setDrawer(true)} aria-label="Open menu" className="rounded p-2 text-white"><Menu size={22} /></button>
-          <Brand name={name} compact />
+          <Brand name={name} compact logoUrl={logo} />
           <span className="w-9" />
         </header>
 

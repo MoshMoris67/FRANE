@@ -8,6 +8,7 @@ import UsersTab from '../features/settings/UsersTab'
 import AuditTab from '../features/settings/AuditTab'
 import DataTab from '../features/settings/DataTab'
 import ControlsTab from '../features/settings/ControlsTab'
+import ImportTab from '../features/import/ImportTab'
 
 export default function Settings() {
   const { can } = useAuth()
@@ -17,6 +18,7 @@ export default function Settings() {
     { id: 'controls', label: 'Controls & approvals', show: true },
     { id: 'users', label: 'Users & permissions', show: can('users', 'view') },
     { id: 'audit', label: 'Audit log', show: can('audit', 'view') },
+    { id: 'import', label: 'Import data', show: can('settings', 'edit') },
     { id: 'data', label: 'Backup & demo data', show: can('settings', 'edit') },
   ].filter((t) => t.show)
   const [tab, setTab] = useState('company')
@@ -26,7 +28,7 @@ export default function Settings() {
       <div className="-mx-1 mb-5 flex gap-1 overflow-x-auto border-b border-slate2-200 px-1">
         {tabs.map((t) => <button key={t.id} onClick={() => setTab(t.id)} className={clsx('-mb-px shrink-0 border-b-2 px-4 py-2.5 text-sm font-semibold', tab === t.id ? 'border-brand-500 text-charcoal-900' : 'border-transparent text-slate2-500 hover:text-charcoal-900')}>{t.label}</button>)}
       </div>
-      {tab === 'company' && <CompanyTab />}{tab === 'categories' && <CategoriesTab />}{tab === 'controls' && <ControlsTab />}{tab === 'users' && <UsersTab />}{tab === 'audit' && <AuditTab />}{tab === 'data' && <DataTab />}
+      {tab === 'company' && <CompanyTab />}{tab === 'categories' && <CategoriesTab />}{tab === 'controls' && <ControlsTab />}{tab === 'users' && <UsersTab />}{tab === 'audit' && <AuditTab />}{tab === 'import' && <ImportTab />}{tab === 'data' && <DataTab />}
     </>
   )
 }

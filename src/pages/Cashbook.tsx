@@ -55,7 +55,7 @@ export default function Cashbook() {
         </>} />
 
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" aria-label="Search cashbook" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="From" />
         <input type="date" className="input" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" />
         <select className="input" value={account} onChange={(e) => setAccount(e.target.value)} aria-label="Account"><option value="">All accounts</option>{(accounts.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>

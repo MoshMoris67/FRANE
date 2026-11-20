@@ -49,7 +49,7 @@ export default function ExpensesTab() {
           <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{v}</p></div>))}
       </div>
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" aria-label="Search expenses" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input type="date" className="input" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" />
         <select className="input" value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category"><option value="">All categories</option>{(cats.data ?? []).filter((c) => c.kind === 'expense').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
         <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status"><option value="">Any status</option><option value="unpaid">Owing</option><option value="paid">Paid</option><option value="partially_paid">Part-paid</option><option value="pending">Awaiting approval</option><option value="cancelled">Cancelled</option></select>

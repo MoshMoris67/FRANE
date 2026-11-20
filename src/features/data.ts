@@ -36,7 +36,7 @@ export function useParties(table: 'customers' | 'suppliers') {
   })
 }
 
-export interface CompanySettings { name: string; address: string; phone: string; email: string; tax_id: string; tagline: string }
+export interface CompanySettings { name: string; address: string; phone: string; email: string; tax_id: string; tagline: string; logo_url?: string }
 export function useSettings() {
   return useQuery({
     queryKey: ['settings'],

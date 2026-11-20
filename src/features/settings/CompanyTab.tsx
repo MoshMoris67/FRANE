@@ -13,6 +13,18 @@ export default function CompanyTab() {
   if (!c) return <Spinner />
   const edit = can('settings', 'edit')
 
+  async function uploadLogo(file: File) {
+    setError('')
+    if (file.size > 1024 * 1024) return setError('Logo must be smaller than 1 MB.')
+    if (!/^image\/(png|jpe?g|svg\+xml|webp)$/.test(file.type)) return setError('Use a PNG, JPG, SVG or WebP image.')
+    const path = `logo-${Date.now()}.${file.name.split('.').pop()?.toLowerCase() ?? 'png'}`
+    const { error: ue } = await supabase.storage.from('branding').upload(path, file, { upsert: true, contentType: file.type })
+    if (ue) return setError(errMsg(ue))
+    const url = supabase.storage.from('branding').getPublicUrl(path).data.publicUrl
+    const next = { ...c!, logo_url: url }; setC(next)
+    const { error: se } = await supabase.from('settings').upsert({ key: 'company', value: next, updated_at: new Date().toISOString() })
+    if (se) return setError(errMsg(se)); await qc.invalidateQueries({ queryKey: ['settings'] }); toast('Logo updated')
+  }
   async function save() {
     setBusy(true); setError('')
     const list = methods.split(',').map((m) => m.trim()).filter(Boolean)
@@ -26,6 +38,10 @@ export default function CompanyTab() {
     <div className="card max-w-2xl space-y-3 p-5">
       <p className="text-sm text-slate2-500">These details appear on invoices, receipts and reports. Nothing is pre-filled — enter your real details.</p>
       <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2 flex items-center gap-4 rounded-md border border-slate2-200 p-3">
+          <div className="flex h-16 w-16 items-center justify-center rounded-md bg-charcoal-900">{c.logo_url ? <img src={c.logo_url} alt="Company logo" className="max-h-14 max-w-14 object-contain" /> : <span className="text-xs text-slate2-400">No logo</span>}</div>
+          <div><p className="text-sm font-medium">Company logo</p><p className="text-xs text-slate2-500">Shown in the app, invoices and reports. PNG, JPG, SVG or WebP, under 1 MB.</p>
+            {edit && <label className="btn-ghost mt-2 cursor-pointer !py-1">Upload logo<input type="file" hidden accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} /></label>}</div></div>
         <div className="sm:col-span-2"><Field label="Company name"><input className="input" disabled={!edit} value={c.name} onChange={set('name')} /></Field></div>
         <div className="sm:col-span-2"><Field label="Address"><input className="input" disabled={!edit} value={c.address} onChange={set('address')} /></Field></div>
         <Field label="Phone"><input className="input" disabled={!edit} value={c.phone} onChange={set('phone')} /></Field>

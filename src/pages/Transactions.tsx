@@ -47,7 +47,7 @@ export default function Transactions() {
         actions={can('transactions', 'create') ? <button className="btn-primary" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button> : undefined} />
 
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search description, reference, ID…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} /></div>
+        <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search description, reference, ID…" aria-label="Search transactions" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => set('from', e.target.value)} aria-label="From" />
         <input type="date" className="input" value={to} min={from} onChange={(e) => set('to', e.target.value)} aria-label="To" />
         <select className="input" value={type} onChange={(e) => set('type', e.target.value)} aria-label="Type"><option value="">All types</option>{(Object.keys(TXN_LABEL) as TxnType[]).map((t) => <option key={t} value={t}>{TXN_LABEL[t]}</option>)}</select>

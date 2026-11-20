@@ -90,13 +90,13 @@ export interface Sale {
   id: string; sale_no: string | null; sale_date: string; customer_id: string; status: 'draft' | 'confirmed' | 'cancelled'
   payment_status: 'unpaid' | 'partially_paid' | 'paid'; delivery_status: 'pending' | 'loading' | 'dispatched' | 'delivered' | 'cancelled'
   subtotal: number; discount: number; transport_charge: number; total: number; amount_paid: number; balance: number; due_date: string | null
-  salesperson_id: string | null; stock_deducted_at: string | null; delivery_address: string | null; notes: string | null; cancel_reason: string | null; created_at: string
+  salesperson_id: string | null; stock_deducted_at: string | null; is_opening?: boolean; is_historical?: boolean; delivery_address: string | null; notes: string | null; cancel_reason: string | null; created_at: string
   customers?: { name: string; phone: string | null; location: string | null; customer_no: string } | null
 }
 export interface SaleItem { id: string; line_no: number; product_id: string | null; description: string; unit: string; quantity: number; unit_price: number; discount: number; line_total: number }
 export interface Receivable { sale_id: string; sale_no: string; customer_id: string; customer_name: string; customer_phone: string | null; sale_date: string; due_date: string | null; total: number; amount_paid: number; balance: number; days_overdue: number; aging_bucket: AgingBucket; effective_status: string }
 export interface Payable { invoice_id: string; purchase_no: string; supplier_invoice_no: string | null; supplier_id: string; supplier_name: string; invoice_date: string; due_date: string | null; kind: 'materials' | 'expense'; description: string; amount: number; amount_paid: number; balance: number; days_overdue: number; aging_bucket: AgingBucket; effective_status: string }
-export interface SupplierInvoice { id: string; purchase_no: string; supplier_id: string; supplier_invoice_no: string | null; invoice_date: string; due_date: string | null; kind: 'materials' | 'expense'; description: string; amount: number; amount_paid: number; balance: number; status: 'open' | 'cancelled'; payment_status: string; notes: string | null; cancel_reason: string | null; transaction_categories?: { name: string } | null }
+export interface SupplierInvoice { id: string; purchase_no: string; supplier_id: string; supplier_invoice_no: string | null; invoice_date: string; due_date: string | null; kind: 'materials' | 'expense' | 'opening'; description: string; amount: number; amount_paid: number; balance: number; status: 'open' | 'cancelled'; payment_status: string; notes: string | null; cancel_reason: string | null; transaction_categories?: { name: string } | null }
 export type AgingBucket = 'current' | '1-30' | '31-60' | '61-90' | '90+'
 export const AGING_LABEL: Record<AgingBucket, string> = { current: 'Current', '1-30': '1–30 days', '31-60': '31–60 days', '61-90': '61–90 days', '90+': '90+ days' }
 export const AGING_ORDER: AgingBucket[] = ['current', '1-30', '31-60', '61-90', '90+']

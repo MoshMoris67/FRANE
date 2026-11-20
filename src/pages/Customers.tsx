@@ -21,8 +21,8 @@ export default function Customers() {
       <PageHeader title="Customers" subtitle={`${data?.length ?? 0} customers · ${fmtUGX(totalDebt)} owed to you`}
         actions={can('customers', 'create') ? <button className="btn-primary" onClick={() => setAdding(true)}><Plus size={16} />Add customer</button> : undefined} />
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-3">
-        <div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search name, phone, location…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <select className="input" value={type} onChange={(e) => setType(e.target.value)}><option value="">All types</option>{(Object.keys(CUSTOMER_TYPE_LABEL) as CustomerType[]).map((t) => <option key={t} value={t}>{CUSTOMER_TYPE_LABEL[t]}</option>)}</select>
+        <div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search name, phone, location…" aria-label="Search customers" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <select className="input" aria-label="Customer type" value={type} onChange={(e) => setType(e.target.value)}><option value="">All types</option>{(Object.keys(CUSTOMER_TYPE_LABEL) as CustomerType[]).map((t) => <option key={t} value={t}>{CUSTOMER_TYPE_LABEL[t]}</option>)}</select>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={onlyDebt} onChange={(e) => setOnlyDebt(e.target.checked)} />Only customers who owe</label>
       </div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}

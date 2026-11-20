@@ -25,9 +25,19 @@ export async function downloadDocPDF(m: DocModel) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const w = doc.internal.pageSize.getWidth(); const h = doc.internal.pageSize.getHeight()
   doc.setFillColor(27, 31, 35); doc.rect(0, 0, w, 84, 'F'); doc.setFillColor(238, 122, 38); doc.rect(0, 84, w, 4, 'F')
-  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text(m.company.name.toUpperCase(), 36, 36)
+  let textX = 36
+  if (m.company.logo_url) {
+    try {
+      const blob = await (await fetch(m.company.logo_url)).blob()
+      if (/png|jpe?g/.test(blob.type)) {
+        const data: string = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob) })
+        doc.addImage(data, blob.type.includes('png') ? 'PNG' : 'JPEG', 36, 16, 52, 52); textX = 100
+      }
+    } catch { /* logo is optional — fall back to text only */ }
+  }
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.text(m.company.name.toUpperCase(), textX, 36)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9)
-  companyLines(m.company).forEach((l, i) => doc.text(l, 36, 52 + i * 12))
+  companyLines(m.company).forEach((l, i) => doc.text(l, textX, 52 + i * 12))
   doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text(m.title.toUpperCase(), w - 36, 40, { align: 'right' })
   if (m.number) { doc.setFontSize(11); doc.text(m.number, w - 36, 58, { align: 'right' }) }
 

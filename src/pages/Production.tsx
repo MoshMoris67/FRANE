@@ -44,8 +44,8 @@ function Batches() {
   const list = (data ?? []).filter((b) => !q || `${b.batch_no} ${b.products?.name ?? ''} ${b.supervisor ?? ''}`.toLowerCase().includes(q.toLowerCase()))
   return (
     <>
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-3"><input className="input sm:col-span-2" placeholder="Search batch, product, supervisor…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{Object.entries(BATCH_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-3"><input className="input sm:col-span-2" placeholder="Search batch, product, supervisor…" aria-label="Search batches" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="input" aria-label="Batch status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{Object.entries(BATCH_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}
       {data && (list.length === 0 ? <div className="card"><Empty icon={<Factory size={22} />} title="No batches yet">Create a batch, record the cement, sand and labour used, then complete it to add finished goods to stock.</Empty></div> : (
         <div className="card overflow-hidden">

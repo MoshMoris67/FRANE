@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Printer, HandCoins, Pencil, Ban, Truck, Undo2 } from 'lucide-react'
 import clsx from 'clsx'
-import { Spinner, ErrorBox, Notice, Modal, Field, PageHeader, Empty } from '../components/ui'
+import { Spinner, ErrorBox, Notice, Modal, Field, PageHeader, Empty, Badge } from '../components/ui'
 import { SaleStatusBadges, DeliveryBadge, DELIVERY_LABEL } from '../features/commercial/badges'
 import PaymentDialog from '../features/commercial/PaymentDialog'
 import { supabase, errMsg } from '../lib/supabase'
@@ -74,11 +74,11 @@ export default function SaleDetail() {
           {s.status !== 'cancelled' && can('sales', 'edit') && <button className="btn-ghost text-red-700" onClick={() => setCancelling(true)}><Ban size={14} />Cancel</button>}
         </>} />
       {error && <div className="mb-3"><Notice tone="red">{error}</Notice></div>}
-      <div className="mb-4 flex flex-wrap items-center gap-2"><SaleStatusBadges sale={s} />{confirmed && <DeliveryBadge status={s.delivery_status} />}</div>
+      <div className="mb-4 flex flex-wrap items-center gap-2"><SaleStatusBadges sale={s} />{confirmed && !s.is_opening && !s.is_historical && <DeliveryBadge status={s.delivery_status} />}{s.is_opening && <Badge tone="neutral">Opening balance</Badge>}{s.is_historical && <Badge tone="neutral">Imported history</Badge>}</div>
       {s.status === 'cancelled' && <div className="mb-4"><Notice tone="red"><b>Cancelled:</b> {s.cancel_reason}</Notice></div>}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <section className="card overflow-hidden">
             <div className="overflow-x-auto"><table className="w-full min-w-[520px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Item</th><th className="th text-right">Qty</th><th className="th text-right">Unit price</th><th className="th text-right">Discount</th><th className="th text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-slate2-100">{items.map((it) => <tr key={it.id}><td className="td">{it.description}</td><td className="td num">{it.quantity} {it.unit}</td><td className="td num">{fmtUGX(it.unit_price)}</td><td className="td num">{it.discount ? fmtUGX(it.discount) : '—'}</td><td className="td num font-medium">{fmtUGX(it.line_total)}</td></tr>)}</tbody></table></div>
@@ -102,7 +102,7 @@ export default function SaleDetail() {
                       {!a.reversed && a.transactions && <Link to={`/documents/receipt/${a.transactions.id}`} target="_blank" className="text-xs font-semibold text-brand-600">Receipt</Link>}</div></li>))}</ul>)}
             </section>)}
         </div>
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <section className="card space-y-2 p-4 text-sm">
             <h2 className="font-semibold">Customer</h2>
             <Link to={`/customers/${s.customer_id}`} className="font-medium text-brand-600">{s.customers?.name}</Link>

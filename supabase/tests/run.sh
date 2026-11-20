@@ -7,4 +7,6 @@ $P -c "drop database if exists frane_test" -c "create database frane_test"
 $P -c "create role anon nologin" 2>/dev/null || true; $P -c "create role authenticated nologin" 2>/dev/null || true
 $P -d frane_test -f "$D/stub_supabase.sql"
 for m in "$D"/../migrations/*.sql; do $P -v ON_ERROR_STOP=1 -d frane_test -f "$m"; done
+# the single-file schema must match the individual migrations
+( cd "$D/.." && bash build_all.sh >/dev/null && git diff --quiet -- all_migrations.sql 2>/dev/null ) || echo "NOTE: supabase/all_migrations.sql was regenerated — commit it"
 for t in "$D"/phase*_test.sql; do echo "== $(basename "$t")"; $P -d frane_test -f "$t" 2>&1 | grep -E "PASS|FAIL|ERROR" | sed 's/.*NOTICE:  //'; done

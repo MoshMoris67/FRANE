@@ -22,15 +22,27 @@ export default function Document() {
       if (kind === 'invoice') {
         const [s, i] = await Promise.all([supabase.from('sales').select('*, customers(name, phone, location, customer_no)').eq('id', id).single(), supabase.from('sale_items').select('*').eq('sale_id', id).order('line_no')])
         if (s.error) throw s.error
-        const sale = s.data as unknown as Sale; const items = (i.data ?? []) as SaleItem[]
+        const sale = s.data as unknown as Sale & { is_opening?: boolean }; const items = (i.data ?? []) as SaleItem[]
         return { company, title: 'Invoice', number: sale.sale_no ?? 'DRAFT', date: fmtDate(sale.sale_date), filename: `Invoice_${sale.sale_no}`,
           meta: [['Due date', fmtDate(sale.due_date)], ['Salesperson', (sale.salesperson_id && names.data?.get(sale.salesperson_id)) || '—']], partyLabel: 'Bill to',
           party: [sale.customers?.name ?? '', sale.customers?.phone ?? '', sale.customers?.location ?? '', sale.delivery_address ? `Deliver to: ${sale.delivery_address}` : ''].filter(Boolean),
           columns: ['#', 'Description', 'Qty', 'Unit price', 'Discount', 'Amount'], numericCols: [0, 2, 3, 4, 5],
-          rows: items.map((x) => [String(x.line_no), x.description, `${num(x.quantity)} ${x.unit}`, fmtUGX(num(x.unit_price)), num(x.discount) ? fmtUGX(num(x.discount)) : '—', fmtUGX(num(x.line_total))]),
+          rows: items.length === 0 && sale.is_opening ? [['1', 'Opening balance brought forward', '1', fmtUGX(num(sale.total)), '—', fmtUGX(num(sale.total))]] : items.map((x) => [String(x.line_no), x.description, `${num(x.quantity)} ${x.unit}`, fmtUGX(num(x.unit_price)), num(x.discount) ? fmtUGX(num(x.discount)) : '—', fmtUGX(num(x.line_total))]),
           totals: [['Subtotal', fmtUGX(num(sale.subtotal))], ...(num(sale.discount) ? [['Discount', `−${fmtUGX(num(sale.discount))}`] as [string, string]] : []), ...(num(sale.transport_charge) ? [['Transport', fmtUGX(num(sale.transport_charge))] as [string, string]] : []),
             ['TOTAL', fmtUGX(num(sale.total)), true], ['Amount paid', fmtUGX(num(sale.amount_paid))], ['BALANCE DUE', fmtUGX(num(sale.balance)), true]],
           notes: sale.notes ?? undefined, footer: `${company.name} · Invoice ${sale.sale_no}` }
+      }
+      if (kind === 'purchase') {
+        const [iv, mv] = await Promise.all([supabase.from('supplier_invoices').select('*, suppliers(name, phone, supplier_no)').eq('id', id).single(), supabase.from('material_movements').select('quantity, unit_cost, raw_materials(name, unit)').eq('source_type', 'supplier_invoice').eq('source_id', id).eq('kind', 'purchase')])
+        if (iv.error) throw iv.error
+        const inv = iv.data as unknown as { purchase_no: string; supplier_invoice_no: string | null; invoice_date: string; due_date: string | null; kind: string; description: string; amount: number; amount_paid: number; balance: number; status: string; notes: string | null; suppliers: { name: string; phone: string | null; supplier_no: string } | null }
+        const lines = ((mv.data ?? []) as unknown as { quantity: number; unit_cost: number; raw_materials: { name: string; unit: string } | null }[])
+        return { company, title: 'Purchase record', number: inv.purchase_no, date: fmtDate(inv.invoice_date), filename: `Purchase_${inv.purchase_no}`,
+          meta: [['Supplier invoice', inv.supplier_invoice_no ?? '—'], ['Due date', fmtDate(inv.due_date)], ['Type', inv.kind === 'materials' ? 'Raw materials received' : inv.kind === 'opening' ? 'Opening balance' : 'Expense invoice'], ['Status', inv.status === 'cancelled' ? 'CANCELLED' : num(inv.balance) > 0 ? 'Owing' : 'Paid']],
+          partyLabel: 'Supplier', party: [inv.suppliers?.name ?? '', inv.suppliers?.phone ?? '', inv.suppliers?.supplier_no ?? ''].filter(Boolean),
+          columns: ['#', 'Item', 'Quantity', 'Unit cost', 'Amount'], numericCols: [0, 2, 3, 4],
+          rows: lines.length ? lines.map((l, i2) => [String(i2 + 1), l.raw_materials?.name ?? '', `${num(l.quantity)} ${l.raw_materials?.unit ?? ''}`, fmtUGX(Math.round(num(l.unit_cost))), fmtUGX(Math.round(num(l.quantity) * num(l.unit_cost)))]) : [['1', inv.description, '1', fmtUGX(num(inv.amount)), fmtUGX(num(inv.amount))]],
+          totals: [['TOTAL', fmtUGX(num(inv.amount)), true], ['Paid so far', fmtUGX(num(inv.amount_paid))], ['BALANCE OWING', fmtUGX(num(inv.balance)), true]], notes: inv.notes ?? undefined, footer: `${company.name} · Purchase record ${inv.purchase_no}` }
       }
       if (kind === 'receipt') {
         const t = await supabase.from('transactions').select('*, customers(name, phone, customer_no), accounts(name)').eq('id', id).single()
@@ -99,7 +111,7 @@ export default function Document() {
       </div>
       <article className="mx-auto mt-5 max-w-[820px] overflow-hidden bg-white shadow-card print:mt-0 print:shadow-none">
         <header className="flex items-start justify-between gap-4 bg-charcoal-900 px-6 py-5 text-white print:bg-charcoal-900" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
-          <div className="flex items-center gap-3"><LogoMark size={44} /><div><p className="font-display text-2xl font-bold uppercase tracking-wider">{model.company.name}</p>{lines.map((l) => <p key={l} className="text-xs text-slate2-300">{l}</p>)}</div></div>
+          <div className="flex items-center gap-3"><LogoMark size={44} url={model.company.logo_url} /><div><p className="font-display text-2xl font-bold uppercase tracking-wider">{model.company.name}</p>{lines.map((l) => <p key={l} className="text-xs text-slate2-300">{l}</p>)}</div></div>
           <div className="text-right"><p className="font-display text-3xl font-bold uppercase tracking-wide">{model.title}</p>{model.number && <p className="text-sm text-brand-400">{model.number}</p>}</div>
         </header>
         <div className="h-1 bg-brand-500" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }} />

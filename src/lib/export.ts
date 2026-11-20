@@ -24,22 +24,24 @@ const csvCell = (v: string | number) => {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
-export function exportCSV(t: ExportTable) {
-  const body = [t.columns, ...t.rows].map((r) => r.map(csvCell).join(',')).join('\r\n')
-  download(new Blob(['﻿' + body], { type: 'text/csv;charset=utf-8' }), `${t.filename}.csv`)
+/** CSV text with a UTF-8 BOM (so Excel reads accents correctly); commas, quotes and newlines are escaped. */
+export function buildCSV(t: ExportTable): string {
+  return '﻿' + [t.columns, ...t.rows].map((r) => r.map(csvCell).join(',')).join('\r\n')
 }
+export function exportCSV(t: ExportTable) { download(new Blob([buildCSV(t)], { type: 'text/csv;charset=utf-8' }), `${t.filename}.csv`) }
 
-export async function exportXLSX(t: ExportTable) {
+export async function buildWorkbook(t: ExportTable) {
   const XLSX = await import('xlsx')
   const aoa = [[COMPANY], [t.title], ...(t.subtitle ? [[t.subtitle]] : []), [], t.columns, ...t.rows]
   const ws = XLSX.utils.aoa_to_sheet(aoa)
   ws['!cols'] = t.columns.map((c, i) => ({ wch: Math.min(48, Math.max(c.length + 2, ...t.rows.slice(0, 200).map((r) => String(r[i] ?? '').length + 2))) }))
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, t.title.slice(0, 31).replace(/[\\/?*[\]:]/g, ''))
-  XLSX.writeFile(wb, `${t.filename}.xlsx`)
+  return { XLSX, wb }
 }
+export async function exportXLSX(t: ExportTable) { const { XLSX, wb } = await buildWorkbook(t); XLSX.writeFile(wb, `${t.filename}.xlsx`) }
 
-export async function exportPDF(t: ExportTable) {
+export async function buildPDF(t: ExportTable) {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
   const doc = new jsPDF({ orientation: t.columns.length > 6 ? 'landscape' : 'portrait', unit: 'pt', format: 'a4' })
   const w = doc.internal.pageSize.getWidth()
@@ -61,5 +63,6 @@ export async function exportPDF(t: ExportTable) {
       doc.text(`Generated ${new Date().toLocaleString('en-GB', { timeZone: 'Africa/Kampala' })}  ·  ${COMPANY}`, 32, doc.internal.pageSize.getHeight() - 16)
     },
   })
-  doc.save(`${t.filename}.pdf`)
+  return doc
 }
+export async function exportPDF(t: ExportTable) { (await buildPDF(t)).save(`${t.filename}.pdf`) }
