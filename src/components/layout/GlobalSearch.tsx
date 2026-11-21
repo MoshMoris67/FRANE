@@ -49,12 +49,12 @@ export default function GlobalSearch({ className, autoFocus, onDone }: { classNa
   let last = ''
   return (
     <div ref={box} className={clsx('relative', className)}>
-      <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate2-400" />
+      <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate2-300" />
       <input ref={ref} autoFocus={autoFocus} role="combobox" aria-expanded={open} aria-controls="global-search-list" aria-label="Search pages, customers, suppliers, products and invoices" value={q} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)} onKeyDown={key}
-        placeholder="Search customers, invoices, pages…" className="h-9 w-full rounded-md border border-slate2-200 bg-white/70 pl-9 pr-14 text-sm text-charcoal-900 placeholder:text-slate2-400 focus:border-charcoal-700 focus:bg-white focus:outline-none" />
-      <kbd className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 rounded-sm border border-slate2-200 px-1.5 py-0.5 text-[10px] font-medium text-slate2-400 md:block">Ctrl K</kbd>
+        placeholder="Search anything…" className="h-11 w-full rounded-full border border-white/15 bg-white/[0.06] pl-11 pr-16 text-sm text-white placeholder:text-slate2-300 focus:border-brand-400 focus:bg-white/10 focus:outline-none" />
+      <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-sm border border-white/20 px-1.5 py-0.5 text-[10px] font-medium text-slate2-300 md:block">Ctrl K</kbd>
       {open && (
-        <ul id="global-search-list" role="listbox" className="absolute left-0 right-0 top-11 z-50 max-h-[70dvh] overflow-y-auto rounded-md border border-slate2-200 bg-white py-1 shadow-pop">
+        <ul id="global-search-list" role="listbox" className="absolute left-0 right-0 top-12 z-50 max-h-[70dvh] overflow-y-auto rounded-md border border-slate2-200 bg-white py-1 shadow-pop">
           {hits.length === 0 && <li className="px-3 py-3 text-sm text-slate2-500">{dq.length >= 2 && !data.isLoading ? 'No matches' : 'Type at least 2 letters'}</li>}
           {hits.map((h, i) => { const head = h.group !== last; last = h.group; return (
             <li key={h.group + h.to + h.label + i} role="option" aria-selected={i === cursor}>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Bell, CalendarDays, ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react'
+import { Bell, CalendarDays, Home, ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, CheckCircle2 } from 'lucide-react'
 import clsx from 'clsx'
 import { NAV } from './nav'
 import { usePeriod } from './PeriodContext'
@@ -20,20 +20,20 @@ function usePop() {
   }, [])
   return { open, setOpen, ref }
 }
-const Pop = ({ children, className }: { children: ReactNode; className?: string }) => <div className={clsx('absolute right-0 top-11 z-50 rounded-md border border-slate2-200 bg-white shadow-pop', className)}>{children}</div>
+const Pop = ({ children, className }: { children: ReactNode; className?: string }) => <div className={clsx('absolute right-0 top-12 z-50 rounded-md border border-slate2-200 bg-white shadow-pop', className)}>{children}</div>
 
 /** Where you are: Dashboard › Sales › Invoice. Parents are links. */
 export function Breadcrumbs() {
   const { pathname } = useLocation()
   const seg = pathname.split('/').filter(Boolean)
-  if (seg.length === 0) return <nav aria-label="Breadcrumb" className="text-sm font-medium text-charcoal-900">Dashboard</nav>
+  if (seg.length === 0) return <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-white"><Home size={18} className="text-slate2-200" /><span className="text-slate2-400">/</span><span className="font-medium">Dashboard</span></nav>
   const top = NAV.find((n) => n.path === `/${seg[0]}`)
   const second = seg[1] === 'new' ? (seg[0] === 'sales' ? 'New sale' : 'New') : seg[2] === 'edit' ? 'Edit draft' : seg[1] ? 'Details' : null
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
-      <Link to="/" className="text-slate2-500 hover:text-charcoal-900">Dashboard</Link><ChevronRight size={13} className="text-slate2-300" />
-      {second ? <><Link to={`/${seg[0]}`} className="text-slate2-500 hover:text-charcoal-900">{top?.label ?? seg[0]}</Link><ChevronRight size={13} className="text-slate2-300" /><span className="font-medium text-charcoal-900">{second}</span></>
-        : <span className="font-medium text-charcoal-900">{top?.label ?? 'Reports'}</span>}
+      <Link to="/" aria-label="Dashboard" className="text-slate2-200 hover:text-white"><Home size={18} /></Link><ChevronRight size={13} className="text-slate2-500" />
+      {second ? <><Link to={`/${seg[0]}`} className="text-slate2-300 hover:text-white">{top?.label ?? seg[0]}</Link><ChevronRight size={13} className="text-slate2-500" /><span className="font-medium text-white">{second}</span></>
+        : <span className="font-medium text-white">{top?.label ?? 'Reports'}</span>}
     </nav>
   )
 }
@@ -43,7 +43,7 @@ export function PeriodPicker() {
   const { preset, setPreset, custom, setCustom, range, label } = usePeriod(); const { open, setOpen, ref } = usePop()
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} aria-haspopup="dialog" aria-expanded={open} className="flex h-9 items-center gap-2 whitespace-nowrap rounded-md border border-slate2-200 bg-white/70 px-3 text-sm hover:bg-white"><CalendarDays size={15} className="text-slate2-500" /><span className="font-medium">{label}</span><ChevronDown size={14} className="text-slate2-400" /></button>
+      <button onClick={() => setOpen(!open)} aria-haspopup="dialog" aria-expanded={open} className="flex h-11 items-center gap-2.5 whitespace-nowrap rounded-full border border-white/15 bg-white/[0.06] px-4 text-sm text-white hover:bg-white/10"><CalendarDays size={18} className="text-slate2-200" /><span className="font-medium">{label}</span><ChevronDown size={14} className="text-slate2-300" /></button>
       {open && (
         <Pop className="w-64 p-1.5">
           {(Object.keys(PRESET_LABEL) as Preset[]).filter((p) => p !== 'custom').map((p) => (
@@ -64,8 +64,8 @@ export function Notifications({ dark }: { dark?: boolean }) {
   const alerts = data ? buildAlerts(data) : []; const urgent = alerts.filter((a) => a.tone !== 'neutral').length
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} aria-label={`Notifications${urgent ? `, ${urgent} need attention` : ''}`} aria-expanded={open} className={clsx('relative flex h-9 w-9 items-center justify-center rounded-md', dark ? 'text-slate2-200 hover:bg-white/10' : 'border border-slate2-200 bg-white/70 text-slate2-600 hover:bg-white')}>
-        <Bell size={17} />{urgent > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">{urgent}</span>}</button>
+      <button onClick={() => setOpen(!open)} aria-label={`Notifications${urgent ? `, ${urgent} need attention` : ''}`} aria-expanded={open} className={clsx('relative flex h-9 w-9 items-center justify-center rounded-md', dark ? 'text-slate2-200 hover:bg-white/10' : '!h-11 !w-11 rounded-full border border-white/15 bg-white/[0.06] text-white hover:bg-white/10')}>
+        <Bell size={19} />{urgent > 0 && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand-500 px-1 text-[10px] font-semibold text-white">{urgent}</span>}</button>
       {open && (
         <Pop className="w-[min(22rem,calc(100vw-1.5rem))]">
           <p className="border-b border-slate2-100 px-3.5 py-2.5 text-sm font-semibold">Needs attention</p>
@@ -82,7 +82,7 @@ export function ProfileMenu() {
   const email = session?.user.email ?? ''; const initials = (email.split('@')[0] || '?').slice(0, 2).toUpperCase()
   return (
     <div ref={ref} className="relative">
-      <button onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open} className="flex h-9 w-9 items-center justify-center rounded-full bg-charcoal-900 text-xs font-semibold text-white hover:bg-charcoal-700">{initials}</button>
+      <button onClick={() => setOpen(!open)} aria-label="Account menu" aria-expanded={open} className="flex h-11 items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] py-1 pl-1 pr-3.5 text-sm text-white hover:bg-white/10"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold">{initials}</span><span className="hidden max-w-[9rem] truncate font-medium xl:block">{email.split('@')[0]}</span><ChevronDown size={14} className="text-slate2-300" /></button>
       {open && (
         <Pop className="w-60 p-1.5">
           <div className="border-b border-slate2-100 px-2.5 pb-2 pt-1.5"><p className="truncate text-sm font-medium">{email}</p><p className="text-xs text-slate2-500">{perms?.role ? ROLE_LABEL[perms.role] : 'No role assigned'}</p></div>

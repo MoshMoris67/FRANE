@@ -1,8 +1,10 @@
-import { ResponsiveContainer, ComposedChart, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts'
+import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts'
 import type { DashboardData } from '../../lib/types'
 import { useState } from 'react'
 import { addDays, bucketKey, spanDays, type Range } from '../../lib/dates'
-import { fmtCompact, fmtUGX, num } from '../../lib/format'
+import { fmtCompact, fmtUGX, num, today } from '../../lib/format'
+import { TrendingUp } from 'lucide-react'
+import { useDashboard } from './useDashboard'
 import { Empty } from '../../components/ui'
 
 const C = { green: '#3f8a63', red: '#c2452d', orange: '#c8651f', slate: '#756f64', charcoal: '#2c3033', grid: '#e6e3dc' }
@@ -123,40 +125,46 @@ export function OperationsCharts({ d }: { d: DashboardData }) {
 }
 
 type Gran = 'day' | 'week' | 'month'
-const GRAN_LABEL: Record<Gran, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly' }
+type Chip = '7D' | '30D' | '3M' | '6M' | '1Y' | 'Custom'
+const CHIP_DAYS: Record<Exclude<Chip, 'Custom'>, number> = { '7D': 7, '30D': 30, '3M': 90, '6M': 180, '1Y': 365 }
 function weekStart(date: string) { const d = new Date(date + 'T00:00:00Z'); const off = (d.getUTCDay() + 6) % 7; return addDays(date, -off) }
 
-/** Hero chart: money received vs spent per bucket, with net movement as a line. Transfers are excluded upstream. */
-export function CashFlowChart({ d, range }: { d: DashboardData; range: Range }) {
+/** Hero trend: money received, money spent and net, with its own range chips. Transfers are excluded upstream. */
+export function CashFlowChart({ className }: { className?: string }) {
+  const [chip, setChip] = useState<Chip>('30D')
+  const [custom, setCustom] = useState<Range>({ from: addDays(today(), -29), to: today() })
+  const range: Range = chip === 'Custom' ? custom : { from: addDays(today(), -(CHIP_DAYS[chip] - 1)), to: today() }
+  const ok = range.from <= range.to
+  const { data: d, isLoading } = useDashboard(ok ? range : { from: addDays(today(), -29), to: today() })
   const span = spanDays(range)
-  const auto: Gran = span <= 45 ? 'day' : span <= 200 ? 'week' : 'month'
-  const [pick, setPick] = useState<Gran | null>(null); const gran = pick ?? auto
+  const gran: Gran = span <= 45 ? 'day' : span <= 200 ? 'week' : 'month'
   const map = new Map<string, { k: string; received: number; spent: number }>()
-  for (const r of d.daily) {
+  for (const r of d?.daily ?? []) {
     const k = gran === 'day' ? r.date : gran === 'week' ? weekStart(r.date) : r.date.slice(0, 7)
     const b = map.get(k) ?? { k, received: 0, spent: 0 }
     b.received += num(r.money_in); b.spent += num(r.money_out); map.set(k, b)
   }
   const rows = [...map.values()].sort((a, b) => a.k.localeCompare(b.k)).map((b) => ({ name: label(b.k), received: b.received, spent: b.spent, net: b.received - b.spent }))
-  const totals = rows.reduce((t, r) => ({ rec: t.rec + r.received, sp: t.sp + r.spent }), { rec: 0, sp: 0 })
+  const dot = (c: string) => (rows.length < 32 ? { r: 3, fill: c, strokeWidth: 0 } : false)
   return (
-    <section aria-label="Cash flow" className="card p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="font-display text-xl font-semibold tracking-tight">Cash flow</h2>
-          <p className="mt-0.5 text-xs text-slate2-500">Money received and spent, {GRAN_LABEL[gran].toLowerCase()}. Transfers between your own accounts are excluded.</p></div>
-        <div role="group" aria-label="Chart interval" className="flex overflow-hidden rounded-md border border-slate2-200">
-          {(Object.keys(GRAN_LABEL) as Gran[]).map((g) => <button key={g} onClick={() => setPick(g)} aria-pressed={gran === g} className={`px-3 py-1.5 text-xs font-medium ${gran === g ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 hover:bg-slate2-100'}`}>{GRAN_LABEL[g]}</button>)}
+    <section aria-label="Cash flow trend" className={`card p-4 sm:p-5 ${className ?? ''}`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight"><TrendingUp size={20} className="text-brand-500" />Cash Flow Trend</h2>
+        <div role="group" aria-label="Chart range" className="flex flex-wrap gap-1">
+          {(['7D', '30D', '3M', '6M', '1Y', 'Custom'] as Chip[]).map((c) => <button key={c} onClick={() => setChip(c)} aria-pressed={chip === c} className={`rounded-md px-3 py-1 text-xs font-semibold ${chip === c ? 'bg-brand-500 text-white' : 'bg-slate2-100 text-slate2-700 hover:bg-slate2-200'}`}>{c}</button>)}
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-        <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 bg-ok-500" />Received <b className="tabular-nums">{fmtUGX(totals.rec)}</b></span>
-        <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 bg-brand-500" />Spent <b className="tabular-nums">{fmtUGX(totals.sp)}</b></span>
-        <span className="flex items-center gap-2"><i className="h-0.5 w-3.5 bg-charcoal-700" />Net <b className="tabular-nums">{fmtUGX(totals.rec - totals.sp)}</b></span>
+      {chip === 'Custom' && <div className="mt-3 flex items-center gap-2"><input type="date" aria-label="Chart from date" className="input !w-auto" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} /><span className="text-slate2-400">to</span><input type="date" aria-label="Chart to date" className="input !w-auto" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} /></div>}
+      <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-slate2-700">
+        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-ok-500" />Money Received</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-brand-500" />Money Spent</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-charcoal-700" />Net Cash Flow</span>
       </div>
-      <div className="mt-3 h-72 sm:h-80">{rows.length === 0 ? <Empty title="No cash movement in this period" /> : (
-        <ResponsiveContainer><ComposedChart data={rows} barGap={2} margin={{ left: 0, right: 4 }}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} minTickGap={16} /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip {...tip} cursor={{ fill: 'rgba(16,18,19,.04)' }} /><ReferenceLine y={0} stroke={C.slate} />
-          <Bar isAnimationActive={false} dataKey="received" name="Received" fill={C.green} maxBarSize={22} /><Bar isAnimationActive={false} dataKey="spent" name="Spent" fill={C.orange} maxBarSize={22} />
-          <Line isAnimationActive={false} dataKey="net" name="Net" stroke={C.charcoal} strokeWidth={2} dot={rows.length < 25 ? { r: 2.5 } : false} /></ComposedChart></ResponsiveContainer>)}</div>
+      <div className="mt-2 h-64 sm:h-72">{isLoading ? <Empty title="Loading…" /> : rows.length === 0 ? <Empty title="No cash movement in this period" /> : (
+        <ResponsiveContainer><AreaChart data={rows} margin={{ left: 0, right: 8, top: 6 }}>
+          <defs><linearGradient id="gRec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={C.green} stopOpacity=".28" /><stop offset="1" stopColor={C.green} stopOpacity="0" /></linearGradient><linearGradient id="gSp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={C.orange} stopOpacity=".24" /><stop offset="1" stopColor={C.orange} stopOpacity="0" /></linearGradient></defs>
+          <CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} minTickGap={18} /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip {...tip} /><ReferenceLine y={0} stroke={C.slate} />
+          <Area isAnimationActive={false} type="monotone" dataKey="received" name="Received" stroke={C.green} strokeWidth={2} fill="url(#gRec)" dot={dot(C.green)} />
+          <Area isAnimationActive={false} type="monotone" dataKey="spent" name="Spent" stroke={C.orange} strokeWidth={2} fill="url(#gSp)" dot={dot(C.orange)} />
+          <Area isAnimationActive={false} type="monotone" dataKey="net" name="Net" stroke={C.charcoal} strokeWidth={2} fill="none" dot={dot(C.charcoal)} /></AreaChart></ResponsiveContainer>)}</div>
     </section>
   )
 }
