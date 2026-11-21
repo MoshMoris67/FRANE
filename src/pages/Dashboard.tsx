@@ -85,7 +85,7 @@ export default function Dashboard() {
   return (
     <>
       {/* Brand banner */}
-      <section className="concrete relative mb-5 overflow-hidden rounded-lg bg-charcoal-900 bg-cover bg-center" style={{ backgroundImage: "linear-gradient(90deg, rgba(16,18,19,.96) 28%, rgba(16,18,19,.35)), url(/factory-banner.jpg), url(/banner-art.svg)" }}>
+      <section className="concrete relative mb-5 overflow-hidden rounded-lg bg-charcoal-900 bg-cover bg-[position:70%_62%]" style={{ backgroundImage: "linear-gradient(90deg, rgba(16,18,19,.92) 0%, rgba(16,18,19,.78) 32%, rgba(16,18,19,.12) 75%), url(/factory-banner.jpg), url(/banner-art.svg)" }}>
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8 sm:py-8">
           <div><h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-wide text-white sm:text-[2.6rem]">{name}</h1><p className="mt-2 text-base italic text-slate2-200 sm:text-lg">Concrete blocks, pavers and more…</p><div className="mt-3 h-[3px] w-24 bg-brand-500" /></div>
           {can('transactions', 'create') && <button className="btn-primary h-11 rounded-md px-5 lg:hidden" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button>}
