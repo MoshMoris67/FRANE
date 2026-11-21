@@ -1,3 +1,4 @@
+import { ATTACH_ACCEPT, checkAttachments, safeName } from '../../lib/files'
 import { useRef, useState } from 'react'
 import { Paperclip, X } from 'lucide-react'
 import { Modal, Field, Notice } from '../../components/ui'
@@ -26,7 +27,7 @@ export default function ExpenseDialog({ onClose }: { onClose: () => void }) {
     const uploaded: Attachment[] = []
     try {
       for (const file of files) {
-        const path = `${f.date.slice(0, 4)}/${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]+/g, '_')}`
+        const path = `${f.date.slice(0, 4)}/${crypto.randomUUID()}-${safeName(file.name)}`
         const { error: ue } = await supabase.storage.from('attachments').upload(path, file); if (ue) throw ue
         uploaded.push({ path, name: file.name })
       }
@@ -58,7 +59,7 @@ export default function ExpenseDialog({ onClose }: { onClose: () => void }) {
         <div className="sm:col-span-2"><Field label="Notes (optional)"><input className="input" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Field></div>
         <div className="sm:col-span-2">
           <span className="label">Receipt / supporting documents</span>
-          <label className="btn-ghost cursor-pointer"><Paperclip size={14} />Add files<input type="file" multiple hidden accept="image/*,application/pdf" onChange={(e) => { setFiles((x) => [...x, ...Array.from(e.target.files ?? [])]); e.target.value = '' }} /></label>
+          <label className="btn-ghost cursor-pointer"><Paperclip size={14} />Add files<input type="file" multiple hidden accept={ATTACH_ACCEPT} onChange={(e) => { const { ok, problem } = checkAttachments(Array.from(e.target.files ?? []), files.length); setError(problem); if (ok.length) setFiles((x) => [...x, ...ok]); e.target.value = '' }} /></label>
           {files.length > 0 && <ul className="mt-2 space-y-1">{files.map((x, i) => <li key={i} className="flex items-center justify-between rounded bg-slate2-100 px-2 py-1 text-xs"><span className="truncate">{x.name}</span><button onClick={() => setFiles((l) => l.filter((_, j) => j !== i))} aria-label="Remove file"><X size={14} /></button></li>)}</ul>}
         </div>
       </div>

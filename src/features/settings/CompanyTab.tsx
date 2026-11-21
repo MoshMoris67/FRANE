@@ -16,8 +16,8 @@ export default function CompanyTab() {
   async function uploadLogo(file: File) {
     setError('')
     if (file.size > 1024 * 1024) return setError('Logo must be smaller than 1 MB.')
-    if (!/^image\/(png|jpe?g|svg\+xml|webp)$/.test(file.type)) return setError('Use a PNG, JPG, SVG or WebP image.')
-    const path = `logo-${Date.now()}.${file.name.split('.').pop()?.toLowerCase() ?? 'png'}`
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) return setError('Use a PNG, JPG or WebP image.')
+    const path = `logo-${Date.now()}.${file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg'}`
     const { error: ue } = await supabase.storage.from('branding').upload(path, file, { upsert: true, contentType: file.type })
     if (ue) return setError(errMsg(ue))
     const url = supabase.storage.from('branding').getPublicUrl(path).data.publicUrl
@@ -41,7 +41,7 @@ export default function CompanyTab() {
         <div className="sm:col-span-2 flex items-center gap-4 rounded-md border border-slate2-200 p-3">
           <div className="flex h-16 w-16 items-center justify-center rounded-md bg-charcoal-900">{c.logo_url ? <img src={c.logo_url} alt="Company logo" className="max-h-14 max-w-14 object-contain" /> : <span className="text-xs text-slate2-400">No logo</span>}</div>
           <div><p className="text-sm font-medium">Company logo</p><p className="text-xs text-slate2-500">Shown in the app, invoices and reports. PNG, JPG, SVG or WebP, under 1 MB.</p>
-            {edit && <label className="btn-ghost mt-2 cursor-pointer !py-1">Upload logo<input type="file" hidden accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} /></label>}</div></div>
+            {edit && <label className="btn-ghost mt-2 cursor-pointer !py-1">Upload logo<input type="file" hidden accept="image/png,image/jpeg,image/webp" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} /></label>}</div></div>
         <div className="sm:col-span-2"><Field label="Company name"><input className="input" disabled={!edit} value={c.name} onChange={set('name')} /></Field></div>
         <div className="sm:col-span-2"><Field label="Address"><input className="input" disabled={!edit} value={c.address} onChange={set('address')} /></Field></div>
         <Field label="Phone"><input className="input" disabled={!edit} value={c.phone} onChange={set('phone')} /></Field>

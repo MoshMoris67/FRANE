@@ -1,3 +1,4 @@
+import { ATTACH_ACCEPT, checkAttachments, safeName } from '../../lib/files'
 import { useMemo, useRef, useState } from 'react'
 import { Paperclip, X, ArrowRight, Plus } from 'lucide-react'
 import clsx from 'clsx'
@@ -11,7 +12,6 @@ import type { Attachment, TxnType } from '../../lib/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from '../../components/toast'
 
-const MAX_FILE = 10 * 1024 * 1024
 
 export default function TransactionDialog({ initialMode = 'transaction', onClose }: { initialMode?: 'transaction' | 'transfer'; onClose: () => void }) {
   const { can } = useAuth()
@@ -80,7 +80,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
     const uploaded: Attachment[] = []
     try {
       for (const f of files) {
-        const path = `${date.slice(0, 4)}/${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]+/g, '_')}`
+        const path = `${date.slice(0, 4)}/${crypto.randomUUID()}-${safeName(f.name)}`
         const { error: ue } = await supabase.storage.from('attachments').upload(path, f)
         if (ue) throw ue
         uploaded.push({ path, name: f.name })
@@ -213,9 +213,9 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
           <div className="sm:col-span-2">
             <span className="label">Attachments (receipts, invoices)</span>
             <label className="btn-ghost cursor-pointer"><Paperclip size={14} /> Add files
-              <input type="file" multiple hidden accept="image/*,application/pdf" onChange={(e) => {
-                const picked = Array.from(e.target.files ?? []); const big = picked.find((f) => f.size > MAX_FILE)
-                if (big) setError(`${big.name} is larger than 10 MB.`); else setFiles((f) => [...f, ...picked]); e.target.value = ''
+              <input type="file" multiple hidden accept={ATTACH_ACCEPT} onChange={(e) => {
+                const { ok, problem } = checkAttachments(Array.from(e.target.files ?? []), files.length)
+                setError(problem); if (ok.length) setFiles((f) => [...f, ...ok]); e.target.value = ''
               }} />
             </label>
             {files.length > 0 && <ul className="mt-2 space-y-1">{files.map((f, i) => (

@@ -64,10 +64,10 @@ export default function Accounts() {
 }
 
 function AccountForm({ account, onClose }: { account: Account | null; onClose: () => void }) {
-  const { can } = useAuth(); const refresh = useRefreshMoney(); const qc = useQueryClient()
+  const refresh = useRefreshMoney(); const qc = useQueryClient()
   const [f, setF] = useState({ name: account?.name ?? '', type: (account?.type ?? 'cash') as AccountType, opening: String(account?.opening_balance ?? 0), ref: account?.account_ref ?? '', desc: account?.description ?? '', status: account?.status ?? 'active', neg: account?.allow_negative ?? false })
   const [busy, setBusy] = useState(false); const [error, setError] = useState('')
-  const lockOpening = !!account && account.txn_count > 0 && !can('accounts', 'edit')
+  const lockOpening = !!account && account.txn_count > 0
 
   async function save() {
     setError('')
@@ -75,7 +75,7 @@ function AccountForm({ account, onClose }: { account: Account | null; onClose: (
     const opening = Number(f.opening.replace(/,/g, '') || 0)
     if (!Number.isFinite(opening)) return setError('Opening balance must be a number.')
     setBusy(true)
-    const payload = { name: f.name.trim(), type: f.type, opening_balance: opening, account_ref: f.ref || null, description: f.desc || null, status: f.status, allow_negative: f.neg }
+    const payload = { name: f.name.trim(), type: f.type, ...(lockOpening ? {} : { opening_balance: opening }), account_ref: f.ref || null, description: f.desc || null, status: f.status, allow_negative: f.neg }
     const { error: e } = account ? await supabase.from('accounts').update(payload).eq('id', account.id) : await supabase.from('accounts').insert(payload)
     setBusy(false)
     if (e) return setError(e.code === '23505' ? 'An account with that name already exists.' : errMsg(e))
@@ -87,7 +87,7 @@ function AccountForm({ account, onClose }: { account: Account | null; onClose: (
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2"><Field label="Account name"><input className="input" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Cash Box, Stanbic Bank, MTN MoMo" /></Field></div>
         <Field label="Type"><select className="input" value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as AccountType })}>{(Object.keys(ACCOUNT_TYPE_LABEL) as AccountType[]).map((t) => <option key={t} value={t}>{ACCOUNT_TYPE_LABEL[t]}</option>)}</select></Field>
-        <Field label="Opening balance (UGX)" hint={account && account.txn_count > 0 ? 'Changing this shifts the whole balance history — it is audit-logged.' : 'Balance on the day you start using the system.'}><input className="input" inputMode="decimal" disabled={lockOpening} value={f.opening} onChange={(e) => setF({ ...f, opening: e.target.value.replace(/[^\d.,-]/g, '') })} /></Field>
+        <Field label="Opening balance (UGX)" hint={lockOpening ? 'Locked — this account already has activity. Use Reconcile to record a correction.' : 'Balance on the day you start using the system.'}><input className="input" inputMode="decimal" disabled={lockOpening} value={f.opening} onChange={(e) => setF({ ...f, opening: e.target.value.replace(/[^\d.,-]/g, '') })} /></Field>
         <Field label="Account no. / reference (optional)"><input className="input" value={f.ref} onChange={(e) => setF({ ...f, ref: e.target.value })} /></Field>
         {account && <Field label="Status"><select className="input" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value as 'active' | 'inactive' })}><option value="active">Active</option><option value="inactive">Inactive</option></select></Field>}
         <div className="sm:col-span-2"><Field label="Description (optional)"><input className="input" value={f.desc} onChange={(e) => setF({ ...f, desc: e.target.value })} /></Field></div>

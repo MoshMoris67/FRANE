@@ -10,3 +10,10 @@ for m in "$D"/../migrations/*.sql; do $P -v ON_ERROR_STOP=1 -d frane_test -f "$m
 # the single-file schema must match the individual migrations
 ( cd "$D/.." && bash build_all.sh >/dev/null && git diff --quiet -- all_migrations.sql 2>/dev/null ) || echo "NOTE: supabase/all_migrations.sql was regenerated — commit it"
 for t in "$D"/phase*_test.sql; do echo "== $(basename "$t")"; $P -d frane_test -f "$t" 2>&1 | grep -E "PASS|FAIL|ERROR" | sed 's/.*NOTICE:  //'; done
+
+# Accounting-identity audit runs on its own FRESH database (zero opening balances)
+echo "== audit_identity.sql"
+$P -c "drop database if exists frane_audit" -c "create database frane_audit"
+$P -d frane_audit -f "$D/stub_supabase.sql"
+for m in "$D"/../migrations/*.sql; do $P -v ON_ERROR_STOP=1 -d frane_audit -f "$m"; done
+$P -d frane_audit -f "$D/audit_identity.sql" 2>&1 | grep -E "PASS|FAIL|ERROR" | sed 's/.*NOTICE:  //'
