@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import AppLayout from './components/layout/AppLayout'
 import { NAV } from './components/layout/nav'
+import { useEffect, useState } from 'react'
 import { Spinner } from './components/ui'
+import { supabase } from './lib/supabase'
 import { Toaster } from './components/toast'
-import Login from './pages/Login'
+import Login, { SetNewPassword } from './pages/Login'
 import NoAccess from './pages/NoAccess'
 import Dashboard from './pages/Dashboard'
 import Cashbook from './pages/Cashbook'
@@ -33,6 +35,17 @@ import Reports from './pages/Reports'
 const qc = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: false } } })
 const BUILT: Record<string, React.ReactElement> = { dashboard: <Dashboard />, cashbook: <Cashbook />, transactions: <Transactions />, accounts: <Accounts />, settings: <Settings />, sales: <Sales />, customers: <Customers />, debts: <Debts />, suppliers: <Suppliers />, inventory: <Inventory />, production: <Production />, expenses: <Expenses />, budgets: <Budgets />, daily_closing: <DailyClosing />, reports: <Reports /> }
 
+/** A reset-password email link signs the user in with a recovery session; make them choose a new password before anything else. */
+function RecoveryGate({ children }: { children: React.ReactNode }) {
+  const [recovering, setRecovering] = useState(() => typeof window !== 'undefined' && /type=recovery/.test(window.location.hash))
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((e) => { if (e === 'PASSWORD_RECOVERY') setRecovering(true) })
+    return () => data.subscription.unsubscribe()
+  }, [])
+  if (recovering) return <SetNewPassword onDone={() => { history.replaceState(null, '', window.location.pathname); setRecovering(false) }} />
+  return <>{children}</>
+}
+
 function Gate() {
   const { session, loading, perms, can } = useAuth()
   if (loading) return <div className="min-h-dvh bg-charcoal-900"><Spinner /></div>
@@ -58,5 +71,5 @@ function Gate() {
 }
 
 export default function App() {
-  return <QueryClientProvider client={qc}><AuthProvider><BrowserRouter><Gate /><Toaster /></BrowserRouter></AuthProvider></QueryClientProvider>
+  return <QueryClientProvider client={qc}><AuthProvider><BrowserRouter><RecoveryGate><Gate /></RecoveryGate><Toaster /></BrowserRouter></AuthProvider></QueryClientProvider>
 }

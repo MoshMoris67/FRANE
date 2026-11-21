@@ -52,6 +52,38 @@ const A11Y = () => {
 ;(async () => {
   const browser = await chromium.launch()
 
+
+  // ---------- 0. login screens (signed out) ----------
+  for (const [vn, vp] of [['desktop', VIEWPORTS.desktop], ['tablet', VIEWPORTS.tablet], ['phone390', VIEWPORTS.phone390], ['phone360', VIEWPORTS.phone360]]) {
+    const errors = []; const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: 1 }); const page = await ctx.newPage()
+    page.on('pageerror', (e) => errors.push('pageerror: ' + e.message)); page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()) })
+    const authCalls = []
+    await page.route('https://mock.supabase.co/**', (route) => { const r = route.request(); authCalls.push(r.method() + ' ' + new URL(r.url()).pathname + (r.postData() ? ' ' + r.postData() : '')); route.fulfill({ status: 400, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ error_description: 'Invalid login credentials', msg: 'Invalid login credentials' }) }) })
+    await page.goto(BASE + '/'); await page.waitForTimeout(500)
+    const L = `${vn} login`
+    const info = await page.evaluate(() => ({ overflow: document.documentElement.scrollWidth > window.innerWidth + 1, scrolls: document.documentElement.scrollHeight - window.innerHeight, h: document.querySelector('h2')?.textContent, imgBg: getComputedStyle(document.querySelector('section')).backgroundImage }))
+    errors.length ? fail(`${L}: console errors`, errors[0]) : ok(`${L}: loads without errors`)
+    info.overflow ? fail(`${L}: horizontal scroll`) : ok(`${L}: no horizontal scroll`)
+    info.h === 'Sign in to FRANE' ? ok(`${L}: heading`) : fail(`${L}: heading`, info.h)
+    info.imgBg.includes('factory-banner') ? ok(`${L}: factory photo`) : fail(`${L}: factory photo`, info.imgBg)
+    vn === 'desktop' ? (info.scrolls <= 1 ? ok(`${L}: fits one screen`) : fail(`${L}: scrolls`, String(info.scrolls))) : (info.scrolls <= 140 ? ok(`${L}: little or no scrolling (${info.scrolls}px)`) : fail(`${L}: too much scrolling`, String(info.scrolls)))
+    const a = await page.evaluate(A11Y)
+    a.unlabelled.length ? fail(`${L}: unlabelled fields`, a.unlabelled.join(',')) : ok(`${L}: fields labelled`)
+    const pw = page.getByLabel('Password', { exact: true })
+    await pw.fill('secret-pw'); await page.getByRole('button', { name: 'Show password' }).click()
+    ;(await pw.getAttribute('type')) === 'text' ? ok(`${L}: show password works`) : fail(`${L}: show password`)
+    await page.getByRole('button', { name: 'Hide password' }).click(); (await pw.getAttribute('type')) === 'password' ? ok(`${L}: hide password works`) : fail(`${L}: hide password`)
+    const box = await page.getByRole('button', { name: /Sign In/ }).boundingBox(); box.height >= 44 ? ok(`${L}: tappable Sign In (${Math.round(box.height)}px)`) : fail(`${L}: Sign In too small`)
+    await page.getByLabel('Email Address').fill('someone@example.com'); await page.getByRole('button', { name: /Sign In/ }).click(); await page.waitForTimeout(300)
+    authCalls.some((c) => c.includes('/auth/v1/token') && c.includes('someone@example.com') && c.includes('secret-pw')) && (await page.getByText('Invalid login credentials').count()) ? ok(`${L}: real Supabase sign-in call is made and errors are shown`) : fail(`${L}: sign-in call`, authCalls.join(' | ').slice(0, 200))
+    if (vn === 'desktop' || vn === 'phone390') await page.screenshot({ path: path.join(OUT, `${vn}-login.png`) })
+    await page.getByRole('button', { name: 'Forgot password?' }).click(); await page.getByLabel('Email Address').fill('someone@example.com'); await page.getByRole('button', { name: /Send reset link/ }).click(); await page.waitForTimeout(300)
+    authCalls.some((c) => c.includes('/auth/v1/recover')) ? ok(`${L}: forgot password calls Supabase recover`) : fail(`${L}: recover call`, authCalls.join(' | ').slice(0, 200))
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click(); await page.getByRole('button', { name: 'Create an account' }).click()
+    ;(await page.getByLabel('Full name').count()) ? ok(`${L}: create-account form`) : fail(`${L}: create-account form`)
+    await ctx.close()
+  }
+
   // ---------- 1. route sweep ----------
   for (const [vn, vp] of Object.entries(VIEWPORTS)) {
     const errors = []; const { ctx, page } = await newPage(browser, vp, fullPerms, errors)
