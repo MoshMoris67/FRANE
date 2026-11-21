@@ -65,7 +65,7 @@ export default function BatchDetail() {
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[['Planned', `${fmtNum(b.qty_planned)} ${unit}`, ''], ['Produced', b.status === 'completed' ? `${fmtNum(b.qty_produced)} ${unit}` : '—', ''], ['Rejected', b.status === 'completed' ? fmtNum(b.qty_rejected) : '—', b.qty_rejected > 0 ? 'text-red-600' : ''], ['Accepted', b.status === 'completed' ? fmtNum(b.qty_accepted) : '—', 'text-emerald-700'], ['Cost per unit', b.cost_per_unit ? fmtUGX(Math.round(b.cost_per_unit)) : '—', '']].map(([l, v, c]) => (
-          <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', c)}>{v}</p></div>))}
+          <div key={l} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', c)}>{v}</p></div>))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

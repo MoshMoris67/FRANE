@@ -37,7 +37,7 @@ export default function Accounts() {
       {data && (
         <>
           <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 bg-charcoal-900 p-5 text-white">
-            <div><p className="text-xs font-semibold uppercase tracking-widest text-slate2-400">Total across active accounts</p><p className="font-display text-4xl font-bold tabular-nums">{fmtUGX(total)}</p></div>
+            <div><p className="text-xs font-semibold text-slate2-400">Total across active accounts</p><p className="font-display text-4xl font-bold tabular-nums">{fmtUGX(total)}</p></div>
             <label className="flex items-center gap-2 text-sm text-slate2-300"><input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />Show inactive</label>
           </div>
           {list.length === 0 ? <div className="card"><Empty icon={<Landmark size={22} />} title="No accounts yet">Add your cash box, bank accounts and mobile-money wallets. Enter each opening balance as it stands today — all future movement is recorded as transactions.</Empty></div> : (

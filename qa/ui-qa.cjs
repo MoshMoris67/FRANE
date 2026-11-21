@@ -70,7 +70,7 @@ const A11Y = () => {
       if (a.unlabelled.length) fail(`${label}: form controls without a label`, [...new Set(a.unlabelled)].slice(0, 3).join(', '))
       if (vn.startsWith('phone') && a.small.length) warn(`${label}: small tap targets`, [...new Set(a.small)].slice(0, 4).join(', '))
     }
-    if (vn === 'phone390') { await page.goto(BASE + '/'); await page.waitForTimeout(500); await page.screenshot({ path: path.join(OUT, 'phone-dashboard.png'), fullPage: true }) }
+    if (true) { await page.goto(BASE + '/'); await page.waitForTimeout(500); await page.screenshot({ path: path.join(OUT, vn + '-dashboard.png'), fullPage: true }) }
     await ctx.close()
   }
 

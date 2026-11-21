@@ -135,7 +135,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
       </>}>
       <div className="mb-4 inline-flex rounded-md bg-slate2-100 p-1 text-sm font-semibold">
         {(['transaction', 'transfer'] as const).map((m) => (
-          <button key={m} onClick={() => { setMode(m); setError(''); setDupe(false) }} className={clsx('rounded px-4 py-1.5', mode === m ? 'bg-white shadow-card' : 'text-slate2-500')}>
+          <button key={m} onClick={() => { setMode(m); setError(''); setDupe(false) }} className={clsx('rounded px-4 py-1.5', mode === m ? 'bg-white' : 'text-slate2-500')}>
             {m === 'transaction' ? 'Transaction' : 'Transfer between accounts'}
           </button>
         ))}

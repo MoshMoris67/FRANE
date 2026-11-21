@@ -68,7 +68,7 @@ export default function Cashbook() {
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[['Opening balance', data.opening, ''], ['Total money in', data.total_in, 'text-emerald-700'], ['Total money out', data.total_out, 'text-red-600'], ['Closing balance', data.closing, 'font-bold']].map(([l, v, c]) => (
-              <div key={l as string} className="card p-3"><p className="text-xs font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-2xl tabular-nums', c)}>{fmtUGX(v as number)}</p></div>))}
+              <div key={l as string} className="card p-3"><p className="text-xs font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-2xl tabular-nums', c)}>{fmtUGX(v as number)}</p></div>))}
           </div>
           <div className="card overflow-hidden">
             {data.rows.length === 0 ? <Empty title="No entries match">Try widening the date range or clearing filters.</Empty> : (

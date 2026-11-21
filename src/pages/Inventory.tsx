@@ -14,7 +14,7 @@ import type { RawMaterial } from '../lib/types'
 type Tab = 'goods' | 'materials' | 'movements' | 'catalogue'
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  return <div className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{label}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums sm:text-2xl', tone)}>{value}</p></div>
+  return <div className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{label}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums sm:text-2xl', tone)}>{value}</p></div>
 }
 
 export default function Inventory() {

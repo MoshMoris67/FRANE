@@ -42,7 +42,7 @@ export default function CustomerDetail() {
         {c.status === 'inactive' && <Badge>Inactive</Badge>}
       </div>
       {c.notes && <div className="mb-4"><Notice tone="neutral">{c.notes}</Notice></div>}
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">{stats.map(([l, v, cl]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', cl)}>{v}</p></div>)}</div>
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-6">{stats.map(([l, v, cl]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', cl)}>{v}</p></div>)}</div>
 
       <div className="mb-3 flex gap-1 border-b border-slate2-200">{(['sales', 'payments'] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={clsx('-mb-px border-b-2 px-4 py-2 text-sm font-semibold capitalize', tab === t ? 'border-brand-500' : 'border-transparent text-slate2-500')}>{t === 'sales' ? 'Sales & credit history' : 'Payment history'}</button>)}</div>
       <div className="card overflow-hidden">

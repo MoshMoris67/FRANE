@@ -122,7 +122,7 @@ export default function PaymentDialog({ kind, partyId, partyName, focusId, onClo
             <div className="mb-2 flex items-center justify-between">
               <span className="label !mb-0">Apply to invoices</span>
               <div className="inline-flex rounded-md bg-slate2-100 p-0.5 text-xs font-semibold">
-                {(['auto', 'manual'] as const).map((m) => <button key={m} onClick={() => setMode(m)} className={clsx('rounded px-3 py-1', mode === m ? 'bg-white shadow-card' : 'text-slate2-500')}>{m === 'auto' ? 'Oldest first' : 'Choose invoices'}</button>)}
+                {(['auto', 'manual'] as const).map((m) => <button key={m} onClick={() => setMode(m)} className={clsx('rounded px-3 py-1', mode === m ? 'bg-white' : 'text-slate2-500')}>{m === 'auto' ? 'Oldest first' : 'Choose invoices'}</button>)}
               </div>
             </div>
             {items.length === 0 ? <p className="rounded-md bg-slate2-100 p-3 text-sm text-slate2-600">No open invoices. The payment will be held as {isCust ? 'customer credit' : 'a supplier advance'} until an invoice exists.</p> : (

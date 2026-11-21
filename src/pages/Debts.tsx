@@ -53,10 +53,10 @@ export default function Debts() {
       {!loading && !err && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{isRec ? 'Total customer debt' : 'Total supplier debt'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{fmtUGX(total)}</p></div>
-            <div className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">Overdue</p><p className={clsx('mt-1 font-display text-2xl font-bold tabular-nums', overdue > 0 && 'text-red-600')}>{fmtUGX(overdue)}</p></div>
-            <div className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{isRec ? 'Open invoices' : 'Due within 7 days'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{isRec ? rows.length : fmtUGX(soon)}</p></div>
-            <div className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{isRec ? 'Customers owing' : 'Suppliers owed'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{new Set(rows.map((r) => ('customer_id' in r ? r.customer_id : (r as Payable).supplier_id))).size}</p></div>
+            <div className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{isRec ? 'Total customer debt' : 'Total supplier debt'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{fmtUGX(total)}</p></div>
+            <div className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">Overdue</p><p className={clsx('mt-1 font-display text-2xl font-bold tabular-nums', overdue > 0 && 'text-red-600')}>{fmtUGX(overdue)}</p></div>
+            <div className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{isRec ? 'Open invoices' : 'Due within 7 days'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{isRec ? rows.length : fmtUGX(soon)}</p></div>
+            <div className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{isRec ? 'Customers owing' : 'Suppliers owed'}</p><p className="mt-1 font-display text-2xl font-bold tabular-nums">{new Set(rows.map((r) => ('customer_id' in r ? r.customer_id : (r as Payable).supplier_id))).size}</p></div>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2"><Aging rows={rows.map((r) => ({ bucket: r.aging_bucket, balance: r.balance }))} /></div>

@@ -59,7 +59,7 @@ export default function PnLView() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        {(Object.keys(LABEL) as P[]).map((k) => <button key={k} onClick={() => setP(k)} className={clsx('rounded-full px-3.5 py-1.5 text-sm font-medium', p === k ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 ring-1 ring-slate2-200 hover:bg-slate2-100')}>{LABEL[k]}</button>)}
+        {(Object.keys(LABEL) as P[]).map((k) => <button key={k} onClick={() => setP(k)} className={clsx('rounded-sm px-3.5 py-1.5 text-sm font-medium', p === k ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 ring-1 ring-slate2-200 hover:bg-slate2-100')}>{LABEL[k]}</button>)}
         {p === 'custom' && <><input type="date" className="input !w-auto" value={custom.from} max={custom.to} onChange={(e2) => setCustom({ ...custom, from: e2.target.value })} /><span className="text-slate2-400">to</span><input type="date" className="input !w-auto" value={custom.to} min={custom.from} onChange={(e2) => setCustom({ ...custom, to: e2.target.value })} /></>}
         <label className="ml-2 flex items-center gap-1.5 text-sm"><input type="checkbox" checked={compare} onChange={(e2) => setCompare(e2.target.checked)} />Compare with previous period</label>
         <div className="ml-auto flex gap-2"><button className="btn-ghost" disabled={!d} onClick={() => exportXLSX(table())}><FileSpreadsheet size={15} />Excel</button><button className="btn-ghost" disabled={!d} onClick={() => exportCSV(table())}><FileDown size={15} />CSV</button><button className="btn-ghost" disabled={!d} onClick={() => exportPDF(table())}><FileText size={15} />PDF</button></div>
@@ -76,7 +76,7 @@ export default function PnLView() {
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[['Revenue', d.revenue.total, ''], ['Gross profit', d.gross_profit, d.gross_profit < 0 ? 'text-red-600' : ''], ['Operating expenses', d.operating_expenses.total, ''], [d.net_profit >= 0 ? 'Net profit' : 'Net loss', d.net_profit, d.net_profit >= 0 ? 'text-emerald-700' : 'text-red-600']].map(([l, v, c]) => (
-            <div key={l as string} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}{d.flags.estimated && l !== 'Operating expenses' && l !== 'Revenue' ? ' (est.)' : ''}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums sm:text-2xl', c as string)}>{fmtUGX(v as number)}</p>{l === 'Gross profit' && d.gross_margin_pct != null && <p className="text-xs text-slate2-500">{d.gross_margin_pct}% margin</p>}</div>))}
+            <div key={l as string} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}{d.flags.estimated && l !== 'Operating expenses' && l !== 'Revenue' ? ' (est.)' : ''}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums sm:text-2xl', c as string)}>{fmtUGX(v as number)}</p>{l === 'Gross profit' && d.gross_margin_pct != null && <p className="text-xs text-slate2-500">{d.gross_margin_pct}% margin</p>}</div>))}
         </div>
 
         <div className="flex gap-1 border-b border-slate2-200">{([['statement', 'Statement'], ['products', 'Product profitability']] as const).map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={clsx('-mb-px border-b-2 px-4 py-2 text-sm font-semibold', tab === k ? 'border-brand-500' : 'border-transparent text-slate2-500')}>{l}</button>)}</div>
@@ -86,24 +86,24 @@ export default function PnLView() {
             <table className="w-full min-w-[420px]">
               <thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Profit &amp; Loss</th><th className="th text-right">{compare ? 'This period' : 'UGX'}</th>{compare && <><th className="th text-right">Previous</th><th className="th text-right">Change</th></>}</tr></thead>
               <tbody className="divide-y divide-slate2-100">
-                <tr><td className="td font-bold uppercase text-xs tracking-wide text-slate2-500" colSpan={compare ? 4 : 2}>Revenue</td></tr>
+                <tr><td className="td font-semibold text-xs text-slate2-500" colSpan={compare ? 4 : 2}>Revenue</td></tr>
                 <Row label="Invoiced sales — products" value={d.revenue.product_sales} prev={e?.revenue.product_sales} indent={1} />
                 {(d.revenue.transport > 0 || (e?.revenue.transport ?? 0) > 0) && <Row label="Invoiced sales — transport charges" value={d.revenue.transport} prev={e?.revenue.transport} indent={1} />}
                 {(d.revenue.manual_sales_entries > 0 || (e?.revenue.manual_sales_entries ?? 0) > 0) && <Row label="Sales entered directly (not invoiced)" value={d.revenue.manual_sales_entries} prev={e?.revenue.manual_sales_entries} indent={1} />}
                 <Row label="Total revenue" value={d.revenue.total} prev={e?.revenue.total} bold />
-                <tr><td className="td font-bold uppercase text-xs tracking-wide text-slate2-500" colSpan={compare ? 4 : 2}>Cost of goods sold</td></tr>
+                <tr><td className="td font-semibold text-xs text-slate2-500" colSpan={compare ? 4 : 2}>Cost of goods sold</td></tr>
                 {d.cogs.lines.length === 0 && <tr><td className="td pl-8 text-slate2-500" colSpan={compare ? 4 : 2}>No goods dispatched in this period</td></tr>}
                 {d.cogs.lines.map((l) => <Row key={l.label} label={l.label} value={num(l.amount)} prev={e ? num(e.cogs.lines.find((x) => x.label === l.label)?.amount) : undefined} indent={1} />)}
                 <Row label="Total cost of goods sold" value={d.cogs.total} prev={e?.cogs.total} bold />
                 <Row label="GROSS PROFIT" value={d.gross_profit} prev={e?.gross_profit} bold tone={d.gross_profit >= 0 ? 'good' : 'bad'} />
-                <tr><td className="td font-bold uppercase text-xs tracking-wide text-slate2-500" colSpan={compare ? 4 : 2}>Operating expenses</td></tr>
+                <tr><td className="td font-semibold text-xs text-slate2-500" colSpan={compare ? 4 : 2}>Operating expenses</td></tr>
                 {d.operating_expenses.groups.map((g) => (<Fragment key={g.group}>
                   <Row label={g.group} value={g.total} prev={e?.operating_expenses.groups.find((x) => x.group === g.group)?.total} indent={1} bold />
                   {g.lines.map((l) => <Row key={g.group + l.label} label={l.label} value={num(l.amount)} indent={2} prev={e ? num(e.operating_expenses.groups.find((x) => x.group === g.group)?.lines.find((x) => x.label === l.label)?.amount) : undefined} />)}</Fragment>))}
                 <Row label="Total operating expenses" value={d.operating_expenses.total} prev={e?.operating_expenses.total} bold />
-                {d.other_income.lines.length > 0 && <><tr><td className="td font-bold uppercase text-xs tracking-wide text-slate2-500" colSpan={compare ? 4 : 2}>Other income</td></tr>{d.other_income.lines.map((l) => <Row key={l.label} label={l.label} value={num(l.amount)} indent={1} />)}<Row label="Total other income" value={d.other_income.total} prev={e?.other_income.total} bold /></>}
-                {d.other_expenses.lines.length > 0 && <><tr><td className="td font-bold uppercase text-xs tracking-wide text-slate2-500" colSpan={compare ? 4 : 2}>Other expenses</td></tr>{d.other_expenses.lines.map((l) => <Row key={l.label} label={l.label} value={num(l.amount)} indent={1} />)}<Row label="Total other expenses" value={d.other_expenses.total} prev={e?.other_expenses.total} bold /></>}
-                <tr className="border-t-2 border-slate2-300 bg-charcoal-900 text-white"><td className="td font-display text-lg font-bold uppercase tracking-wide">{d.net_profit >= 0 ? 'Net profit' : 'Net loss'}{d.flags.estimated && ' (estimated)'}</td><td className="td num text-lg font-bold">{fmtUGX(d.net_profit)}</td>{compare && <><td className="td num">{e ? fmtUGX(e.net_profit) : '…'}</td><td className="td num text-xs">{e ? `${d.net_profit - e.net_profit >= 0 ? '+' : '−'}${fmtNum(Math.abs(d.net_profit - e.net_profit))}` : ''}</td></>}</tr>
+                {d.other_income.lines.length > 0 && <><tr><td className="td font-semibold text-xs text-slate2-500" colSpan={compare ? 4 : 2}>Other income</td></tr>{d.other_income.lines.map((l) => <Row key={l.label} label={l.label} value={num(l.amount)} indent={1} />)}<Row label="Total other income" value={d.other_income.total} prev={e?.other_income.total} bold /></>}
+                {d.other_expenses.lines.length > 0 && <><tr><td className="td font-semibold text-xs text-slate2-500" colSpan={compare ? 4 : 2}>Other expenses</td></tr>{d.other_expenses.lines.map((l) => <Row key={l.label} label={l.label} value={num(l.amount)} indent={1} />)}<Row label="Total other expenses" value={d.other_expenses.total} prev={e?.other_expenses.total} bold /></>}
+                <tr className="border-t-2 border-slate2-300 bg-charcoal-900 text-white"><td className="td font-display text-lg font-bold">{d.net_profit >= 0 ? 'Net profit' : 'Net loss'}{d.flags.estimated && ' (estimated)'}</td><td className="td num text-lg font-bold">{fmtUGX(d.net_profit)}</td>{compare && <><td className="td num">{e ? fmtUGX(e.net_profit) : '…'}</td><td className="td num text-xs">{e ? `${d.net_profit - e.net_profit >= 0 ? '+' : '−'}${fmtNum(Math.abs(d.net_profit - e.net_profit))}` : ''}</td></>}</tr>
               </tbody>
             </table>
           </div>)}

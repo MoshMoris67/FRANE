@@ -41,7 +41,7 @@ export default function Sales() {
       <PageHeader title="Sales" subtitle="Invoices, payments and delivery"
         actions={can('sales', 'create') ? <Link to="/sales/new" className="btn-primary"><Plus size={16} />New sale</Link> : undefined} />
       <div className="mb-4 grid grid-cols-3 gap-3">{[['Invoiced', sum('total'), ''], ['Collected', sum('amount_paid'), 'text-emerald-700'], ['Still owing', sum('balance'), 'text-red-600']].map(([l, v, c]) => (
-        <div key={l as string} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{fmtUGX(v as number)}</p></div>))}</div>
+        <div key={l as string} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{fmtUGX(v as number)}</p></div>))}</div>
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Invoice or customer…" aria-label="Search invoices" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => set('from', e.target.value)} aria-label="From" />

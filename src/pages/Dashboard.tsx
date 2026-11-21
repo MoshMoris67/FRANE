@@ -1,187 +1,186 @@
-import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, Wallet, ArrowDownLeft, ArrowUpRight, Scale, AlertTriangle, Plus, Hammer, ShoppingCart, Users, Truck, PackageCheck, Receipt, PiggyBank, Boxes, Factory, Layers, ClipboardCheck } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Plus, AlertTriangle, ArrowRight } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Notice } from '../components/ui'
+import { Spinner, ErrorBox } from '../components/ui'
 import { useDashboard } from '../features/dashboard/useDashboard'
 import { buildAlerts } from '../features/dashboard/alerts'
-import { PeriodCharts, TrendCharts, OperationsCharts } from '../features/dashboard/Charts'
-import { presetRange, PRESET_LABEL, type Preset, type Range } from '../lib/dates'
+import { CashFlowChart, PeriodCharts, TrendCharts, OperationsCharts } from '../features/dashboard/Charts'
+import { presetRange, type Range } from '../lib/dates'
 import { fmtUGX, fmtDate, fmtNum, today } from '../lib/format'
+import { supabase } from '../lib/supabase'
 import { TXN_LABEL } from '../lib/types'
 import { useRecord } from '../components/layout/RecordContext'
+import { usePeriod } from '../components/layout/PeriodContext'
 import { useAuth } from '../auth/AuthContext'
 
-function Kpi({ label, value, sub, icon: Icon, tone = 'neutral', to }: { label: string; value: string; sub?: string; icon: typeof Banknote; tone?: 'neutral' | 'green' | 'red' | 'orange'; to?: string }) {
+const tone = (n: number) => (n < 0 ? 'text-bad-500' : 'text-charcoal-900')
+
+/** A figure in a ruled list — the building block of the compact summaries. */
+function Row({ label, value, sub, to, color }: { label: string; value: string; sub?: string; to?: string; color?: string }) {
   const nav = useNavigate()
-  const color = { neutral: 'text-charcoal-900', green: 'text-emerald-700', red: 'text-red-600', orange: 'text-brand-600' }[tone]
-  const Tag = to ? 'button' : 'div'
+  const inner = (<><span className="min-w-0"><span className="block text-sm text-slate2-700">{label}</span>{sub && <span className="block text-xs text-slate2-500">{sub}</span>}</span><span className={clsx('figure shrink-0 text-lg', color)}>{value}</span></>)
+  const cls = 'flex w-full items-baseline justify-between gap-3 border-b border-slate2-100 py-2 text-left last:border-0'
+  return to ? <button className={clsx(cls, 'hover:bg-slate2-50')} onClick={() => nav(to)}>{inner}</button> : <div className={cls}>{inner}</div>
+}
+const Head = ({ title, action, to }: { title: string; action?: string; to?: string }) => (
+  <div className="mb-1 flex items-baseline justify-between"><h2 className="font-display text-xl font-semibold tracking-tight">{title}</h2>{to && <Link to={to} className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">{action ?? 'View all'}<ArrowRight size={12} /></Link>}</div>
+)
+
+interface Activity { id: string; txn_date: string; description: string; type: string; direction: 'in' | 'out'; amount: number; status: string; accounts: { name: string } | null; transaction_categories: { name: string } | null }
+function RecentActivity() {
+  const q = useQuery({
+    queryKey: ['dashboard-activity'], staleTime: 20_000,
+    queryFn: async (): Promise<Activity[]> => {
+      const { data, error } = await supabase.from('transactions').select('id,txn_date,description,type,direction,amount,status,accounts(name),transaction_categories(name)').neq('type', 'transfer').order('txn_date', { ascending: false }).order('created_at', { ascending: false }).limit(10)
+      if (error) throw error
+      return (data ?? []) as unknown as Activity[]
+    },
+  })
   return (
-    <Tag onClick={to ? () => nav(to) : undefined} className={clsx('card p-4 text-left', to && 'transition hover:border-brand-400 hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-500/40')}>
-      <div className="flex items-center justify-between text-slate2-500"><span className="text-xs font-semibold uppercase tracking-wide">{label}</span><Icon size={16} /></div>
-      <p className={clsx('mt-2 font-display text-[1.7rem] font-bold leading-none tabular-nums', color)}>{value}</p>
-      {sub && <p className="mt-1.5 text-xs text-slate2-500">{sub}</p>}
-    </Tag>
+    <section aria-label="Recent activity" className="card">
+      <div className="border-b border-slate2-200 px-4 pb-2 pt-3"><Head title="Recent activity" to="/transactions" /></div>
+      {q.isLoading ? <Spinner /> : q.error ? <ErrorBox error={q.error} retry={() => q.refetch()} /> : (q.data ?? []).length === 0 ? <p className="p-6 text-center text-sm text-slate2-500">No transactions yet. Use “Record Transaction” to add your first.</p> : (
+        <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-sm">
+          <thead><tr><th className="th">Date</th><th className="th">Description</th><th className="th">Category</th><th className="th">Account</th><th className="th text-right">Amount</th><th className="th">Type</th></tr></thead>
+          <tbody>{q.data!.map((r) => (
+            <tr key={r.id} className="border-t border-slate2-100">
+              <td className="td whitespace-nowrap text-slate2-600">{fmtDate(r.txn_date)}</td><td className="td max-w-[16rem] truncate font-medium">{r.description}</td>
+              <td className="td text-slate2-600">{r.transaction_categories?.name ?? '—'}</td><td className="td text-slate2-600">{r.accounts?.name ?? '—'}</td>
+              <td className={clsx('td num whitespace-nowrap font-medium', r.direction === 'in' ? 'text-ok-600' : 'text-bad-500', r.status === 'reversed' && 'line-through opacity-50')}>{r.direction === 'in' ? '+' : '−'}{fmtUGX(r.amount)}</td>
+              <td className="td whitespace-nowrap text-slate2-600">{TXN_LABEL[r.type as keyof typeof TXN_LABEL] ?? r.type}</td></tr>))}</tbody></table></div>)}
+    </section>
   )
 }
 
 export default function Dashboard() {
-  const [preset, setPreset] = useState<Preset>('month')
-  const [custom, setCustom] = useState<Range>({ from: today(), to: today() })
-  const range = preset === 'custom' ? custom : presetRange(preset)
-  const valid = range.from <= range.to
+  const { range, valid, label } = usePeriod()
   const { data: d, isLoading, error, refetch } = useDashboard(valid ? range : presetRange('month'))
   const { data: t } = useDashboard(presetRange('today'))
-  const { openRecord } = useRecord()
-  const { can } = useAuth()
+  const { openRecord } = useRecord(); const { can } = useAuth()
   const q = (r: Range, extra = '') => `/transactions?from=${r.from}&to=${r.to}${extra}`
-  const td = presetRange('today')
-
+  const td = presetRange('today'); const mo = presetRange('month')
   const byType = (type: string) => (d?.accounts ?? []).filter((a) => a.type === type).reduce((s, a) => s + a.balance, 0)
   const total = (d?.accounts ?? []).reduce((s, a) => s + a.balance, 0)
   const alerts = d ? buildAlerts(d) : []
+  const net = d ? d.inflows - d.outflows : 0
+  const todayNet = (t?.inflows ?? 0) - (t?.outflows ?? 0)
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="Live financial position of FRANE CONCRETE FACTORY"
-        actions={can('transactions', 'create') ? <button className="btn-primary lg:hidden" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button> : undefined} />
-
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <div className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1">
-          {(Object.keys(PRESET_LABEL) as Preset[]).map((p) => (
-            <button key={p} onClick={() => setPreset(p)} className={clsx('shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium', preset === p ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 ring-1 ring-slate2-200 hover:bg-slate2-100')}>{PRESET_LABEL[p]}</button>))}
-        </div>
-        {preset === 'custom' && (
-          <div className="flex items-center gap-2">
-            <input type="date" className="input !w-auto" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} aria-label="From date" />
-            <span className="text-slate2-400">to</span>
-            <input type="date" className="input !w-auto" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} aria-label="To date" />
-          </div>
-        )}
-        <span className="ml-auto text-xs text-slate2-500">{fmtDate(range.from)} – {fmtDate(range.to)}</span>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div><h1 className="font-display text-[2.1rem] font-semibold leading-none tracking-tight">Dashboard</h1><p className="mt-1.5 text-sm text-slate2-500">Financial position and factory output · {label}</p></div>
+        {can('transactions', 'create') && <button className="btn-primary lg:hidden" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button>}
       </div>
-
+      {!valid && <p className="mb-4 text-sm text-bad-500">“From” date is after “To” date — showing this month instead.</p>}
       {isLoading && <Spinner />}
       {error && <ErrorBox error={error} retry={() => refetch()} />}
       {d && (
         <div className="space-y-6">
           {d.accounts.length === 0 && (
             <div className="card flex flex-col items-start gap-3 border-brand-400 bg-brand-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="font-semibold text-charcoal-900">Set up your money accounts to get started</p><p className="text-sm text-slate2-600">Add your cash box, bank and mobile-money accounts with their opening balances. Everything else builds on them.</p></div>
-              <Link to="/accounts" className="btn-primary shrink-0">Set up accounts</Link>
-            </div>
-          )}
+              <div><p className="font-semibold">Set up your money accounts to get started</p><p className="text-sm text-slate2-600">Add your cash box, bank and mobile-money accounts with their opening balances. Everything else builds on them.</p></div>
+              <Link to="/accounts" className="btn-primary shrink-0">Set up accounts</Link></div>)}
 
+          {/* 1 · Financial hero */}
+          <section aria-label="Cash position" className="concrete overflow-hidden rounded-lg bg-charcoal-900 text-white">
+            <div className="relative z-10 grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.25fr_1fr] lg:items-end">
+              <div>
+                <p className="text-sm text-slate2-300">Total cash available</p>
+                <Link to="/accounts" className={clsx('figure mt-2 block text-[3rem] leading-none sm:text-[4.25rem]', total < 0 ? 'text-[#e8836d]' : 'text-white')}>{fmtUGX(total)}</Link>
+                <p className="mt-3 text-sm text-slate2-300">Net cash flow, {label.toLowerCase()}: <b className={clsx('font-semibold tabular-nums', net >= 0 ? 'text-[#7fc29d]' : 'text-[#e8836d]')}>{net >= 0 ? '+' : '−'}{fmtUGX(Math.abs(net))}</b></p>
+              </div>
+              <dl className="grid grid-cols-3 gap-px bg-white/10 text-sm">
+                {[['Cash on hand', byType('cash')], ['Bank', byType('bank')], ['Mobile money', byType('mobile_money')]].map(([l, v]) => (
+                  <div key={l as string} className="min-w-0 bg-charcoal-900 p-2.5 sm:p-3"><dt className="text-xs text-slate2-400">{l}</dt><dd className="figure mt-1 truncate text-base sm:text-xl">{fmtUGX(v as number)}</dd></div>))}
+              </dl>
+            </div>
+          </section>
+
+          {/* 2 · Alerts, only when there is something to act on */}
           {alerts.length > 0 && (
-            <section aria-label="Alerts" className="space-y-2">
-              {alerts.map((a, i) => (
-                <div key={i} className={clsx('flex items-start gap-3 rounded-lg border px-4 py-3 text-sm', a.tone === 'red' ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-300 bg-amber-50 text-amber-900')}>
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                  <div className="flex-1"><span className="font-semibold">{a.title}.</span> {a.detail}</div>
-                  {a.to && <Link to={a.to} className="shrink-0 font-semibold underline">View</Link>}
+            <section aria-label="Alerts" className="divide-y divide-slate2-200 rounded-lg border border-slate2-200 bg-white">
+              {alerts.slice(0, 3).map((a, i) => (
+                <div key={i} className="flex items-start gap-3 px-4 py-2.5 text-sm">
+                  <AlertTriangle size={15} className={clsx('mt-0.5 shrink-0', a.tone === 'red' ? 'text-bad-500' : 'text-brand-500')} />
+                  <p className="flex-1"><span className="font-medium">{a.title}.</span> <span className="text-slate2-600">{a.detail}</span></p>
+                  {a.to && <Link to={a.to} className="shrink-0 text-xs font-medium text-brand-600 hover:text-brand-700">View</Link>}
                 </div>))}
-            </section>
-          )}
+              {alerts.length > 3 && <p className="px-4 py-2 text-xs text-slate2-500">+{alerts.length - 3} more — open the bell in the header to see all.</p>}
+            </section>)}
 
-          <section aria-label="Cash position">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Cash position (now)</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi label="Total cash available" value={fmtUGX(total)} icon={Wallet} tone={total < 0 ? 'red' : 'orange'} to="/accounts" sub="All active accounts" />
-              <Kpi label="Cash on hand" value={fmtUGX(byType('cash'))} icon={Banknote} to="/accounts" />
-              <Kpi label="Bank balances" value={fmtUGX(byType('bank'))} icon={Landmark} to="/accounts" />
-              <Kpi label="Mobile money" value={fmtUGX(byType('mobile_money'))} icon={Smartphone} to="/accounts" />
-            </div>
-          </section>
-
-          <section aria-label="Today">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Today · {fmtDate(today())}</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi label="Today's income" value={fmtUGX(t?.revenue)} icon={ArrowDownLeft} tone="green" to={q(td, '&type=income')} sub={t && t.inflows !== t.revenue ? `Total cash received ${fmtUGX(t.inflows)}` : 'Revenue earned'} />
-              <Kpi label="Today's expenses" value={fmtUGX(t?.expenses)} icon={ArrowUpRight} tone="red" to={q(td, '&type=expense')} sub={t && t.outflows !== t.expenses ? `Total cash paid out ${fmtUGX(t.outflows)}` : 'Expenses incurred'} />
-              <Kpi label="Today's net cash flow" value={fmtUGX((t?.inflows ?? 0) - (t?.outflows ?? 0))} icon={Scale} tone={(t?.inflows ?? 0) - (t?.outflows ?? 0) >= 0 ? 'green' : 'red'} to={q(td)} sub="Actual money in − out" />
-              <Kpi label="Customer collections today" value={fmtUGX(t?.collections)} icon={TrendingUp} to={q(td, '&type=customer_payment')} sub="Not counted as revenue" />
-            </div>
-          </section>
-
-          <section aria-label="Month">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">This month</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi label="Monthly revenue" value={fmtUGX(d.month_revenue)} icon={TrendingUp} tone="green" to={q(presetRange('month'), '&type=income')} />
-              <Kpi label="Monthly expenses" value={fmtUGX(d.month_expenses)} icon={TrendingDown} tone="red" to={q(presetRange('month'), '&type=expense')} />
-              <Kpi label="Estimated monthly profit" value={fmtUGX(d.month_revenue - d.month_expenses)} icon={Scale} tone={d.month_revenue - d.month_expenses >= 0 ? 'green' : 'red'} sub={d.cogs_incomplete > 0 ? 'Estimate — some dispatched goods have no cost recorded' : 'Estimate: revenue − cost of goods − operating expenses'} />
-              <Kpi label="Sales invoiced today" value={fmtUGX(d.sales_today)} icon={ShoppingCart} to="/sales" sub="Confirmed invoices" />
-            </div>
-          </section>
-
-          <section aria-label="Receivables and payables">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Customers &amp; suppliers</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi label="Outstanding customer balances" value={fmtUGX(d.receivables_total)} icon={Users} tone={d.receivables_overdue > 0 ? 'red' : 'orange'} to="/debts" sub={d.receivables_overdue > 0 ? `${fmtUGX(d.receivables_overdue)} overdue` : 'Nothing overdue'} />
-              <Kpi label="Outstanding supplier balances" value={fmtUGX(d.payables_total)} icon={Truck} to="/debts?tab=payables" sub={d.payables_overdue > 0 ? `${fmtUGX(d.payables_overdue)} overdue` : d.payables_due_soon > 0 ? `${fmtUGX(d.payables_due_soon)} due within 7 days` : 'Nothing due soon'} />
-              <Kpi label="Orders awaiting fulfilment" value={String(d.pending_orders)} icon={PackageCheck} to="/sales?delivery=open&from=2000-01-01" sub="Pending or loading" />
-              <div className="card p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate2-500">Largest debtors</p>
-                {d.largest_debtors.length === 0 ? <p className="mt-2 text-xs text-slate2-500">None</p> : <ul className="mt-1.5 space-y-1 text-sm">{d.largest_debtors.slice(0, 3).map((x) => <li key={x.id} className="flex justify-between gap-2"><Link to={`/customers/${x.id}`} className="truncate hover:text-brand-600">{x.name}</Link><span className="tabular-nums">{fmtUGX(x.outstanding)}</span></li>)}</ul>}</div>
-            </div>
-          </section>
-
-          {can('inventory', 'view') && (
-          <section aria-label="Operations">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Production &amp; stock</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="card p-4"><div className="flex items-center justify-between text-slate2-500"><span className="text-xs font-semibold uppercase tracking-wide">Produced today</span><Factory size={16} /></div>
-                {d.produced_today.length === 0 ? <p className="mt-2 font-display text-[1.7rem] font-bold leading-none">0</p> : <ul className="mt-1.5 space-y-0.5 text-sm">{d.produced_today.map((r) => <li key={r.category} className="flex justify-between gap-2"><span className="truncate">{r.category}</span><b className="tabular-nums">{fmtNum(r.qty)}</b></li>)}</ul>}</div>
-              <div className="card p-4"><div className="flex items-center justify-between text-slate2-500"><span className="text-xs font-semibold uppercase tracking-wide">Sold today (units)</span><ShoppingCart size={16} /></div>
-                {d.sold_today.length === 0 ? <p className="mt-2 font-display text-[1.7rem] font-bold leading-none">0</p> : <ul className="mt-1.5 space-y-0.5 text-sm">{d.sold_today.map((r) => <li key={r.category} className="flex justify-between gap-2"><span className="truncate">{r.category}</span><b className="tabular-nums">{fmtNum(r.qty)}</b></li>)}</ul>}</div>
-              <Kpi label="Current inventory" value={`${fmtNum(d.stock_units)} units`} icon={Boxes} to="/inventory" sub={`Finished goods ${fmtUGX(d.stock_value)} · materials ${fmtUGX(d.material_value)}`} />
-              <Kpi label="Batches in progress" value={String(d.batches_in_progress)} icon={Layers} to="/production" sub={d.low_stock_products.length ? `${d.low_stock_products.length} product(s) low on stock` : 'No low-stock products'} />
-            </div>
-          </section>)}
-
-          {(can('expenses', 'view') || can('daily_closing', 'view')) && (
-          <section aria-label="Management">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">Controls</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <Kpi label="Unpaid expenses" value={fmtUGX(d.unpaid_expenses)} icon={Receipt} to="/expenses" sub={d.pending_expense_approvals ? `${d.pending_expense_approvals} awaiting approval` : 'Incurred, not yet paid'} />
-              {d.payroll_unpaid != null && <Kpi label="Payroll awaiting payment" value={fmtUGX(d.payroll_unpaid)} icon={Users} to="/expenses?tab=payroll" sub={d.payroll_pending ? `${d.payroll_pending} awaiting approval` : 'Approved, unpaid'} />}
-              <Kpi label="Budgets at risk" value={String(d.budget_alerts.length)} icon={PiggyBank} tone={d.budget_alerts.some((b) => b.pct >= 100) ? 'red' : 'neutral'} to="/budgets" sub={d.budget_alerts[0] ? `${d.budget_alerts[0].label}: ${d.budget_alerts[0].pct}% used` : 'All within budget'} />
-              <Kpi label="Unreconciled accounts" value={String(d.unreconciled_accounts.length)} icon={ClipboardCheck} tone={d.unreconciled_accounts.length ? 'red' : 'neutral'} to="/daily-closing?tab=reconciliations" sub={d.closings_pending ? `${d.closings_pending} closing(s) to approve` : 'Counted recently'} />
-            </div>
-          </section>)}
-
-          <section aria-label="Financial overview" className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate2-200 px-4 py-3"><h2 className="text-sm font-semibold">Financial overview</h2><span className="text-xs text-slate2-500">{fmtDate(range.from)} – {fmtDate(range.to)}</span></div>
-            <dl className="grid grid-cols-2 divide-slate2-200 sm:grid-cols-5 sm:divide-x">
-              {[['Opening cash', d.opening, ''], ['Total inflows', d.inflows, 'text-emerald-700'], ['Total outflows', d.outflows, 'text-red-600'], ['Net movement', d.inflows - d.outflows, d.inflows - d.outflows >= 0 ? 'text-emerald-700' : 'text-red-600'], ['Closing cash', d.closing, 'font-bold']].map(([l, v, c]) => (
-                <div key={l as string} className="border-b border-slate2-100 p-4 sm:border-b-0"><dt className="text-xs uppercase tracking-wide text-slate2-500">{l}</dt><dd className={clsx('mt-1 text-lg tabular-nums', c)}>{fmtUGX(v as number)}</dd></div>))}
-            </dl>
-            <p className="border-t border-slate2-100 px-4 py-2 text-[11px] text-slate2-500">Internal transfers between accounts are excluded from inflows/outflows. Opening + inflows − outflows = closing.</p>
-          </section>
-
-          <PeriodCharts d={d} range={range} />
-          <TrendCharts d={d} />
-          {can('inventory', 'view') && <OperationsCharts d={d} />}
-
-          <div className="grid gap-4 lg:grid-cols-3">
-            <section className="card lg:col-span-2">
-              <div className="flex items-center justify-between border-b border-slate2-200 px-4 py-3"><h2 className="text-sm font-semibold">Recent transactions</h2><Link to="/transactions" className="text-xs font-semibold text-brand-600">View all</Link></div>
-              {d.recent.length === 0 ? <p className="p-6 text-center text-sm text-slate2-500">No transactions yet. Use “Record Transaction” to add your first.</p> : (
-                <ul className="divide-y divide-slate2-100">{d.recent.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <div className="min-w-0"><p className="truncate font-medium">{r.description}</p><p className="text-xs text-slate2-500">{fmtDate(r.date)} · {TXN_LABEL[r.type]} · {r.account}{r.status === 'reversed' && ' · reversed'}</p></div>
-                    <span className={clsx('shrink-0 font-semibold tabular-nums', r.direction === 'in' ? 'text-emerald-700' : 'text-red-600', r.status === 'reversed' && 'line-through opacity-50')}>{r.direction === 'in' ? '+' : '−'}{fmtUGX(r.amount)}</span>
-                  </li>))}</ul>)}
-            </section>
-            <section className="card p-4">
-              <h2 className="text-sm font-semibold">Accounts</h2>
-              <ul className="mt-2 divide-y divide-slate2-100 text-sm">{d.accounts.map((a) => (
-                <li key={a.id} className="flex justify-between py-2"><span>{a.name}</span><span className={clsx('tabular-nums font-medium', a.balance < 0 && 'text-red-600')}>{fmtUGX(a.balance)}</span></li>))}
-                {d.accounts.length === 0 && <li className="py-2 text-slate2-500">No accounts yet.</li>}</ul>
-            </section>
+          {/* 3 · Cash-flow chart + financial summary */}
+          <div className="grid gap-6 xl:grid-cols-[1fr_340px] [&>*]:min-w-0">
+            <CashFlowChart d={d} range={valid ? range : mo} />
+            <aside aria-label="Financial summary" className="card p-4 sm:p-5">
+              <Head title="Financial summary" />
+              <p className="mb-1 mt-3 text-xs font-medium text-slate2-500">Today · {fmtDate(today())}</p>
+              <Row label="Income" value={fmtUGX(t?.revenue)} to={q(td, '&type=income')} color="text-ok-600" />
+              <Row label="Expenses" value={fmtUGX(t?.expenses)} to={q(td, '&type=expense')} color="text-bad-500" />
+              <Row label="Customer collections" sub="Not counted as revenue" value={fmtUGX(t?.collections)} to={q(td, '&type=customer_payment')} />
+              <Row label="Net cash flow" value={fmtUGX(todayNet)} to={q(td)} color={tone(todayNet)} />
+              <p className="mb-1 mt-5 text-xs font-medium text-slate2-500">This month</p>
+              <Row label="Revenue" value={fmtUGX(d.month_revenue)} to={q(mo, '&type=income')} color="text-ok-600" />
+              <Row label="Expenses" value={fmtUGX(d.month_expenses)} to={q(mo, '&type=expense')} color="text-bad-500" />
+              <Row label="Estimated profit" sub={d.cogs_incomplete > 0 ? 'Some dispatched goods have no cost recorded' : 'Revenue − cost of goods − expenses'} value={fmtUGX(d.month_revenue - d.month_expenses)} color={tone(d.month_revenue - d.month_expenses)} />
+            </aside>
           </div>
 
-          <Notice tone="neutral"><span className="inline-flex items-center gap-1.5 font-semibold"><Hammer size={14} />Coming next (Phase 5):</span> full Profit &amp; Loss, cash-flow forecast and the reports centre. Not shown yet rather than filled with placeholder numbers.</Notice>
-        </div>
-      )}
+          {/* 4 · Period ledger strip */}
+          <section aria-label="Financial overview" className="rounded-lg border border-slate2-200 bg-white">
+            <dl className="grid grid-cols-2 sm:grid-cols-5 sm:divide-x sm:divide-slate2-200">
+              {([['Opening cash', d.opening, ''], ['Inflows', d.inflows, 'text-ok-600'], ['Outflows', d.outflows, 'text-bad-500'], ['Net movement', net, tone(net)], ['Closing cash', d.closing, 'font-bold']] as const).map(([l, v, c]) => (
+                <div key={l} className="border-b border-slate2-100 px-4 py-3 sm:border-b-0"><dt className="text-xs text-slate2-500">{l}</dt><dd className={clsx('figure mt-0.5 text-xl', c)}>{fmtUGX(v)}</dd></div>))}
+            </dl>
+            <p className="border-t border-slate2-100 px-4 py-1.5 text-[11px] text-slate2-500">{fmtDate(range.from)} – {fmtDate(range.to)} · transfers excluded · opening + inflows − outflows = closing</p>
+          </section>
+
+          {/* 5 · Accounts + factory performance */}
+          <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+            <section className="card p-4 sm:p-5">
+              <Head title="Accounts" to="/accounts" action="Manage" />
+              <ul className="mt-1">{d.accounts.map((a) => (
+                <li key={a.id} className="flex items-baseline justify-between border-b border-slate2-100 py-2 last:border-0"><span className="text-sm">{a.name}<span className="ml-2 text-xs text-slate2-400">{a.type === 'mobile_money' ? 'Mobile money' : a.type === 'bank' ? 'Bank' : 'Cash'}</span></span><span className={clsx('figure text-lg', tone(a.balance))}>{fmtUGX(a.balance)}</span></li>))}
+                {d.accounts.length === 0 && <li className="py-2 text-sm text-slate2-500">No accounts yet.</li>}</ul>
+            </section>
+            {can('inventory', 'view') && (
+              <section className="concrete overflow-hidden rounded-lg border border-slate2-200 bg-slate2-100/60 p-4 sm:p-5">
+                <div className="relative z-10">
+                  <Head title="Factory performance" to="/production" action="Production" />
+                  <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div><dt className="text-xs text-slate2-500">Produced today</dt>{d.produced_today.length === 0 ? <dd className="figure text-3xl text-slate2-400">0</dd> : d.produced_today.map((r) => <dd key={r.category} className="flex items-baseline justify-between text-sm"><span className="truncate text-slate2-700">{r.category}</span><b className="figure text-2xl">{fmtNum(r.qty)}</b></dd>)}</div>
+                    <div><dt className="text-xs text-slate2-500">Sold today</dt>{d.sold_today.length === 0 ? <dd className="figure text-3xl text-slate2-400">0</dd> : d.sold_today.map((r) => <dd key={r.category} className="flex items-baseline justify-between text-sm"><span className="truncate text-slate2-700">{r.category}</span><b className="figure text-2xl">{fmtNum(r.qty)}</b></dd>)}</div>
+                    <div><dt className="text-xs text-slate2-500">Inventory</dt><dd><Link to="/inventory" className="figure text-3xl hover:text-brand-600">{fmtNum(d.stock_units)}</Link><span className="ml-1 text-xs text-slate2-500">units</span><span className="block text-xs text-slate2-500">{fmtUGX(d.stock_value)} finished goods</span></dd></div>
+                    <div><dt className="text-xs text-slate2-500">Awaiting delivery</dt><dd><Link to="/sales?delivery=open&from=2000-01-01" className="figure text-3xl hover:text-brand-600">{d.pending_orders}</Link><span className="block text-xs text-slate2-500">{d.batches_in_progress} batch(es) in progress{d.low_stock_products.length ? ` · ${d.low_stock_products.length} low on stock` : ''}</span></dd></div>
+                  </dl></div>
+              </section>)}
+          </div>
+
+          {/* 6 · Recent activity + money owed and controls */}
+          <div className="grid gap-6 xl:grid-cols-[1fr_340px] [&>*]:min-w-0 xl:items-start">
+            <RecentActivity />
+            <div className="space-y-6">
+              <section className="card p-4 sm:p-5"><Head title="Owed" />
+                <Row label="Customers owe us" sub={d.receivables_overdue > 0 ? `${fmtUGX(d.receivables_overdue)} overdue` : 'Nothing overdue'} value={fmtUGX(d.receivables_total)} to="/debts" color={d.receivables_overdue > 0 ? 'text-bad-500' : undefined} />
+                <Row label="We owe suppliers" sub={d.payables_overdue > 0 ? `${fmtUGX(d.payables_overdue)} overdue` : d.payables_due_soon > 0 ? `${fmtUGX(d.payables_due_soon)} due in 7 days` : 'Nothing due soon'} value={fmtUGX(d.payables_total)} to="/debts?tab=payables" />
+                {d.largest_debtors.slice(0, 3).map((x) => <p key={x.id} className="flex justify-between border-t border-slate2-100 pt-1.5 text-xs text-slate2-600"><Link to={`/customers/${x.id}`} className="truncate hover:text-brand-600">{x.name}</Link><span className="tabular-nums">{fmtUGX(x.outstanding)}</span></p>)}
+              </section>
+              {(can('expenses', 'view') || can('daily_closing', 'view')) && (
+                <section className="card p-4 sm:p-5"><Head title="Controls" />
+                  <Row label="Unpaid expenses" sub={d.pending_expense_approvals ? `${d.pending_expense_approvals} awaiting approval` : undefined} value={fmtUGX(d.unpaid_expenses)} to="/expenses" />
+                  {d.payroll_unpaid != null && <Row label="Payroll to pay" sub={d.payroll_pending ? `${d.payroll_pending} awaiting approval` : undefined} value={fmtUGX(d.payroll_unpaid)} to="/expenses?tab=payroll" />}
+                  <Row label="Budgets at risk" sub={d.budget_alerts[0] ? `${d.budget_alerts[0].label}: ${d.budget_alerts[0].pct}% used` : 'All within budget'} value={String(d.budget_alerts.length)} to="/budgets" color={d.budget_alerts.some((b) => b.pct >= 100) ? 'text-bad-500' : undefined} />
+                  <Row label="Unreconciled accounts" sub={d.closings_pending ? `${d.closings_pending} closing(s) to approve` : undefined} value={String(d.unreconciled_accounts.length)} to="/daily-closing?tab=reconciliations" color={d.unreconciled_accounts.length ? 'text-bad-500' : undefined} />
+                </section>)}
+            </div>
+          </div>
+
+          {/* 7 · Analysis */}
+          <details className="group">
+            <summary className="cursor-pointer list-none font-display text-xl font-semibold tracking-tight hover:text-brand-600">Analysis <span className="text-sm font-normal text-slate2-500 group-open:hidden">— income, categories, trends</span></summary>
+            <div className="mt-4 space-y-6"><PeriodCharts d={d} range={valid ? range : mo} /><TrendCharts d={d} />{can('inventory', 'view') && <OperationsCharts d={d} />}</div>
+          </details>
+        </div>)}
     </>
   )
 }

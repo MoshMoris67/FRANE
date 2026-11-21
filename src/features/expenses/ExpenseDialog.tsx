@@ -65,7 +65,7 @@ export default function ExpenseDialog({ onClose }: { onClose: () => void }) {
       {canPay && (
         <div className="mt-4 rounded-lg border border-slate2-200 p-3">
           <p className="label">Payment</p>
-          <div className="inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{([['none', 'Not paid yet'], ['full', 'Paid in full'], ['part', 'Part-paid']] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setPay(k)} className={`rounded px-3 py-1.5 ${pay === k ? 'bg-white shadow-card' : 'text-slate2-500'}`}>{l}</button>)}</div>
+          <div className="inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{([['none', 'Not paid yet'], ['full', 'Paid in full'], ['part', 'Part-paid']] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setPay(k)} className={`rounded px-3 py-1.5 ${pay === k ? 'bg-white' : 'text-slate2-500'}`}>{l}</button>)}</div>
           {pay !== 'none' && (
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <Field label="Paid from account" hint={acct ? `Balance ${fmtUGX(acct.current_balance)}` : undefined}><select className="input" value={p.account} onChange={(e) => setP({ ...p, account: e.target.value })}><option value="">Select…</option>{(accounts.data ?? []).filter((a) => a.status === 'active').map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>

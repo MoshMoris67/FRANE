@@ -46,7 +46,7 @@ export default function ExpensesTab() {
     <>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[['Incurred', fmtUGX(incurred), ''], ['Paid in cash', fmtUGX(paid), 'text-emerald-700'], ['Still owing', fmtUGX(incurred - paid), incurred - paid > 0 ? 'text-red-600' : ''], ['Awaiting approval', `${pending.length}${pending.length ? ` · ${fmtUGX(pending.reduce((s, r) => s + r.amount, 0))}` : ''}`, pending.length ? 'text-amber-700' : '']].map(([l, v, c]) => (
-          <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{v}</p></div>))}
+          <div key={l} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{v}</p></div>))}
       </div>
       <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
         <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" aria-label="Search expenses" value={q} onChange={(e) => setQ(e.target.value)} /></div>

@@ -52,7 +52,7 @@ function CloseDay() {
     await refresh(); const r = data as { id: string; status: string; variance: number }; setDone({ id: r.id, status: r.status, variance: num(r.variance) }); toast('Day closed')
   }
   if (done) return (
-    <div className="card max-w-xl p-6 text-center"><CalendarCheck className="mx-auto text-emerald-600" size={36} /><h2 className="mt-2 font-display text-2xl font-bold uppercase">Day closed</h2>
+    <div className="card max-w-xl p-6 text-center"><CalendarCheck className="mx-auto text-emerald-600" size={36} /><h2 className="mt-2 font-display text-2xl font-bold">Day closed</h2>
       <p className="mt-1 text-sm text-slate2-600">{done.status === 'approved' ? 'Approved.' : 'Submitted — a manager must approve this closing because of the cash variance.'} Variance: <b>{fmtUGX(done.variance)}</b></p>
       <div className="mt-4 flex justify-center gap-2"><Link to={`/documents/daily-closing/${done.id}`} target="_blank" className="btn-primary"><FileText size={15} />Closing report</Link><button className="btn-ghost" onClick={() => { setDone(null); setCounted(''); setDen({}); setWhy('') }}>Close another</button></div></div>
   )
@@ -66,7 +66,7 @@ function CloseDay() {
         {prev.isLoading && <Spinner />}{prev.error && <ErrorBox error={prev.error} />}
         {p?.existing && <Notice tone="amber">This account is already closed for {fmtDate(date)} ({p.existing.status}). A manager must reopen it before it can be closed again.</Notice>}
         {p && !p.existing && (<>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[['Opening balance', num(p.opening), ''], ['Receipts', num(p.receipts), 'text-emerald-700'], ['Payments', num(p.payments), 'text-red-600'], ['Expected closing', num(p.expected), 'font-bold']].map(([l, v, c]) => <div key={l as string} className="rounded-md bg-slate2-100 p-3"><dt className="text-[11px] uppercase tracking-wide text-slate2-500">{l}</dt><dd className={clsx('mt-0.5 tabular-nums', c)}>{fmtUGX(v as number)}</dd></div>)}</dl>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[['Opening balance', num(p.opening), ''], ['Receipts', num(p.receipts), 'text-emerald-700'], ['Payments', num(p.payments), 'text-red-600'], ['Expected closing', num(p.expected), 'font-bold']].map(([l, v, c]) => <div key={l as string} className="rounded-md bg-slate2-100 p-3"><dt className="text-[11px] text-slate2-500">{l}</dt><dd className={clsx('mt-0.5 tabular-nums', c)}>{fmtUGX(v as number)}</dd></div>)}</dl>
           {isCash && <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={useDen} onChange={(e) => setUseDen(e.target.checked)} />Count notes and coins</label>}
           {useDen ? (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{DENOMS.map((d) => <label key={d} className="rounded-md border border-slate2-200 p-2"><span className="block text-xs font-semibold text-slate2-600">{fmtNum(d)}</span><input className="input mt-1 !py-1" inputMode="numeric" placeholder="0" value={den[d] ?? ''} onChange={(e) => setDen({ ...den, [d]: e.target.value.replace(/\D/g, '') })} aria-label={`Count of ${d} notes`} /><span className="mt-0.5 block text-[11px] text-slate2-500">{fmtUGX(d * (Number(den[d]) || 0))}</span></label>)}</div>

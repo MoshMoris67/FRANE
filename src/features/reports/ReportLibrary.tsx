@@ -22,7 +22,7 @@ export default function ReportLibrary() {
   return (
     <div className="space-y-6">
       {GROUPS.map((g) => { const list = visible.filter((r) => r.group === g); if (!list.length) return null; return (
-        <section key={g}><h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate2-500">{g} reports</h2>
+        <section key={g}><h2 className="mb-2 text-xs font-bold text-slate2-500">{g} reports</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{list.map((r) => (
             r.link && !r.run ? <Link key={r.id} to={r.link} className="card p-4 transition hover:border-brand-400 hover:shadow-md"><p className="flex items-center justify-between font-semibold">{r.title}<ExternalLink size={14} className="text-slate2-400" /></p><p className="mt-1 text-sm text-slate2-500">{r.description}</p></Link>
             : <button key={r.id} onClick={() => setSel(r)} className="card p-4 text-left transition hover:border-brand-400 hover:shadow-md"><p className="font-semibold">{r.title}</p><p className="mt-1 text-sm text-slate2-500">{r.description}</p></button>))}</div></section>) })}
@@ -44,7 +44,7 @@ function Viewer({ def, onBack }: { def: ReportDef; onBack: () => void }) {
   return (
     <div>
       <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-sm text-slate2-500 hover:text-charcoal-900"><ArrowLeft size={14} />All reports</button>
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-display text-2xl font-bold uppercase tracking-wide">{def.title}</h2><p className="text-sm text-slate2-500">{def.description}</p></div>
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-display text-2xl font-bold">{def.title}</h2><p className="text-sm text-slate2-500">{def.description}</p></div>
         <div className="flex gap-2"><button className="btn-ghost" disabled={!q.data} onClick={() => exportXLSX(table())}><FileSpreadsheet size={15} />Excel</button><button className="btn-ghost" disabled={!q.data} onClick={() => exportCSV(table())}><FileDown size={15} />CSV</button><button className="btn-ghost" disabled={!q.data} onClick={() => exportPDF(table())}><FileText size={15} />PDF</button></div></div>
       {(def.filters.length > 0) && (
         <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -55,7 +55,7 @@ function Viewer({ def, onBack }: { def: ReportDef; onBack: () => void }) {
       {need && <Notice tone="amber">Choose {def.requires} to run this report.</Notice>}
       {q.isLoading && !need && <Spinner />}{q.error && <ErrorBox error={q.error} />}
       {q.data && (<>
-        {q.data.summary && <div className="mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">{q.data.summary.map(([l, v]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className="mt-1 font-display text-xl font-bold tabular-nums">{v}</p></div>)}</div>}
+        {q.data.summary && <div className="mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">{q.data.summary.map(([l, v]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className="mt-1 font-display text-xl font-bold tabular-nums">{v}</p></div>)}</div>}
         {q.data.rows.length === 0 ? <div className="card"><Empty title="Nothing to report for these filters" /></div> : (
           <div className="card overflow-x-auto"><table className="w-full min-w-[560px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>{q.data.columns.map((c, i) => <th key={i} className={clsx('th', q.data!.numericCols.includes(i) && 'text-right')}>{c}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate2-100">{q.data.rows.map((r, ri) => { const head = typeof r[0] === 'string' && (r[0] as string) === (r[0] as string).toUpperCase() && /[A-Z]{3}/.test(r[0] as string) && r.slice(1).every((c) => c === ''); const total = typeof r[0] === 'string' && /^(TOTAL|Total|Closing|Opening|GROSS|NET)/.test(r[0] as string) || (typeof r[1] === 'string' && r[1] === 'TOTAL')

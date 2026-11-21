@@ -33,7 +33,7 @@ export default function PayrollTab() {
     <>
       <Notice tone="neutral">Payroll is restricted to authorised users. Pay = days × wage (or prorated salary) + overtime + allowances − deductions. Cost counts when payroll is approved; cash leaves only when you pay it.</Notice>
       <div className="my-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{(['records', 'employees', 'summary'] as const).map((k) => <button key={k} onClick={() => setSub(k)} className={clsx('rounded px-3 py-1.5 capitalize', sub === k ? 'bg-white shadow-card' : 'text-slate2-500')}>{k === 'records' ? 'Payroll runs' : k}</button>)}</div>
+        <div className="inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{(['records', 'employees', 'summary'] as const).map((k) => <button key={k} onClick={() => setSub(k)} className={clsx('rounded px-3 py-1.5 capitalize', sub === k ? 'bg-white' : 'text-slate2-500')}>{k === 'records' ? 'Payroll runs' : k}</button>)}</div>
         <div className="flex gap-2">{can('payroll', 'create') && <button className="btn-ghost" onClick={() => setEmpForm('new')}><Plus size={15} />Add employee</button>}{can('payroll', 'create') && <button className="btn-primary" onClick={() => setNewPay(true)}><Plus size={16} />New payroll</button>}</div>
       </div>
       {error && <div className="mb-3"><Notice tone="red">{error}</Notice></div>}
@@ -59,7 +59,7 @@ export default function PayrollTab() {
 
       {sub === 'summary' && (
         <>
-          <div className="mb-3 inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{(['day', 'week', 'month'] as const).map((k) => <button key={k} onClick={() => setGroup(k)} className={clsx('rounded px-3 py-1.5 capitalize', group === k ? 'bg-white shadow-card' : 'text-slate2-500')}>By {k}</button>)}</div>
+          <div className="mb-3 inline-flex rounded-md bg-slate2-100 p-0.5 text-sm font-semibold">{(['day', 'week', 'month'] as const).map((k) => <button key={k} onClick={() => setGroup(k)} className={clsx('rounded px-3 py-1.5 capitalize', group === k ? 'bg-white' : 'text-slate2-500')}>By {k}</button>)}</div>
           {summary.isLoading ? <Spinner /> : summary.error ? <ErrorBox error={summary.error} /> : (summary.data ?? []).length === 0 ? <div className="card"><Empty title="No payroll in the last 12 months" /></div> : (
             <div className="card overflow-x-auto"><table className="w-full min-w-[520px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Period</th><th className="th text-right">People</th><th className="th text-right">Records</th><th className="th text-right">Total</th><th className="th text-right">Paid</th><th className="th text-right">Unpaid</th></tr></thead>
               <tbody className="divide-y divide-slate2-100">{summary.data!.map((r) => <tr key={r.period}><td className="td font-medium">{r.period}</td><td className="td num">{r.headcount}</td><td className="td num">{r.records}</td><td className="td num font-semibold">{fmtUGX(num(r.total))}</td><td className="td num text-emerald-700">{fmtUGX(num(r.paid))}</td><td className="td num text-red-600">{fmtUGX(num(r.unpaid))}</td></tr>)}</tbody></table></div>)}

@@ -74,14 +74,14 @@ function Reports() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        {(['today', 'week', 'month', 'quarter', 'year', 'custom'] as Preset[]).map((p) => <button key={p} onClick={() => setPreset(p)} className={clsx('rounded-full px-3.5 py-1.5 text-sm font-medium', preset === p ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 ring-1 ring-slate2-200')}>{PRESET_LABEL[p]}</button>)}
+        {(['today', 'week', 'month', 'quarter', 'year', 'custom'] as Preset[]).map((p) => <button key={p} onClick={() => setPreset(p)} className={clsx('rounded-sm px-3.5 py-1.5 text-sm font-medium', preset === p ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 ring-1 ring-slate2-200')}>{PRESET_LABEL[p]}</button>)}
         {preset === 'custom' && <><input type="date" className="input !w-auto" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} /><span className="text-slate2-400">to</span><input type="date" className="input !w-auto" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} /></>}
         <div className="ml-auto flex gap-2"><button className="btn-ghost" disabled={!data} onClick={() => exportXLSX(tables())}><FileSpreadsheet size={15} />Excel</button><button className="btn-ghost" disabled={!data} onClick={() => exportCSV(tables())}><FileDown size={15} />CSV</button></div>
       </div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} />}
       {data && (<>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-          {[['Produced', fmtNum(tot.produced), ''], ['Accepted', fmtNum(tot.accepted), 'text-emerald-700'], ['Rejected', fmtNum(tot.rejected), tot.rejected ? 'text-red-600' : ''], ['Reject rate', tot.produced ? `${((tot.rejected / tot.produced) * 100).toFixed(1)}%` : '—', ''], ['Total cost', fmtUGX(tot.cost), '']].map(([l, v, c]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', c)}>{v}</p></div>)}
+          {[['Produced', fmtNum(tot.produced), ''], ['Accepted', fmtNum(tot.accepted), 'text-emerald-700'], ['Rejected', fmtNum(tot.rejected), tot.rejected ? 'text-red-600' : ''], ['Reject rate', tot.produced ? `${((tot.rejected / tot.produced) * 100).toFixed(1)}%` : '—', ''], ['Total cost', fmtUGX(tot.cost), '']].map(([l, v, c]) => <div key={l} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-xl font-bold tabular-nums', c)}>{v}</p></div>)}
         </div>
         <ChartCard title="Accepted vs rejected" subtitle="By completion date" empty={data.by_day.length === 0}>
           <ResponsiveContainer><BarChart data={data.by_day.map((d) => ({ name: d.date.slice(8, 10) + '/' + d.date.slice(5, 7), accepted: num(d.accepted), rejected: num(d.rejected) }))}><CartesianGrid stroke="#e6e8eb" vertical={false} /><XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={44} /><Tooltip /><Legend wrapperStyle={{ fontSize: 12 }} />

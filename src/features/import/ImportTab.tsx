@@ -43,14 +43,14 @@ export default function ImportTab() {
       <Notice tone="neutral">Move your handwritten books into the system in this order. Each file is checked first (nothing is saved until you confirm), is all-or-nothing, and the same file can’t be imported twice. Excel (.xlsx) and CSV are supported — up to 2,000 rows per file.</Notice>
       <div className="grid gap-3 md:grid-cols-2">{IMPORT_KINDS.map((k) => (
         <div key={k.id} className="card flex flex-col justify-between gap-3 p-4">
-          <div><p className="text-xs font-bold uppercase tracking-widest text-brand-600">Step {k.step}</p><p className="mt-0.5 font-semibold">{k.title}</p><p className="mt-1 text-sm text-slate2-500">{k.description}</p></div>
+          <div><p className="text-xs font-bold text-brand-600">Step {k.step}</p><p className="mt-0.5 font-semibold">{k.title}</p><p className="mt-1 text-sm text-slate2-500">{k.description}</p></div>
           <div className="flex gap-2"><button className="btn-primary !py-1.5" onClick={() => setKind(k)}><Upload size={14} />Import</button><button className="btn-ghost !py-1.5" onClick={() => download(k)}><Download size={14} />Template</button></div>
         </div>))}</div>
     </div>
   )
 
   if (done) return (
-    <div className="card max-w-xl space-y-3 p-6 text-center"><CheckCircle2 className="mx-auto text-emerald-600" size={38} /><h3 className="font-display text-2xl font-bold uppercase">Import complete</h3>
+    <div className="card max-w-xl space-y-3 p-6 text-center"><CheckCircle2 className="mx-auto text-emerald-600" size={38} /><h3 className="font-display text-2xl font-bold">Import complete</h3>
       <p className="text-sm text-slate2-600"><b>{done.created}</b> created · <b>{done.skipped}</b> skipped (already existed).</p>
       {done.results.filter((r) => r.message && r.status === 'created').slice(0, 5).map((r) => <Notice key={r.row} tone="amber">Row {r.row}: {r.message}</Notice>)}
       <button className="btn-primary" onClick={reset}>Import something else</button></div>
@@ -59,7 +59,7 @@ export default function ImportTab() {
   return (
     <div className="space-y-4">
       <button className="text-sm text-slate2-500 hover:text-charcoal-900" onClick={reset}>← All imports</button>
-      <div><h3 className="font-display text-2xl font-bold uppercase tracking-wide">{kind.title}</h3><p className="text-sm text-slate2-500">{kind.description}</p></div>
+      <div><h3 className="font-display text-2xl font-bold">{kind.title}</h3><p className="text-sm text-slate2-500">{kind.description}</p></div>
       {kind.warning && <Notice tone="amber"><AlertTriangle size={14} className="mr-1 inline" />{kind.warning}</Notice>}
       <div className="card p-4"><label className="btn-ghost cursor-pointer"><Upload size={15} />{file ? 'Choose a different file' : 'Choose CSV or Excel file'}<input type="file" hidden accept=".csv,.xlsx,.xls,.xlsm,text/csv" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
         {file && <span className="ml-3 text-sm text-slate2-600">{file.name} · {table?.rows.length ?? 0} data rows</span>}

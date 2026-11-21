@@ -1,13 +1,14 @@
-import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts'
+import { ResponsiveContainer, ComposedChart, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts'
 import type { DashboardData } from '../../lib/types'
-import { bucketKey, spanDays, type Range } from '../../lib/dates'
+import { useState } from 'react'
+import { addDays, bucketKey, spanDays, type Range } from '../../lib/dates'
 import { fmtCompact, fmtUGX, num } from '../../lib/format'
 import { Empty } from '../../components/ui'
 
-const C = { green: '#059669', red: '#dc2626', orange: '#ee7a26', slate: '#6f7782', charcoal: '#323941', grid: '#e6e8eb' }
-const PIE = ['#ee7a26', '#323941', '#059669', '#6f7782', '#d9650f', '#9aa1aa', '#2f6f8f', '#b4510c', '#535b65', '#c3c8ce']
+const C = { green: '#3f8a63', red: '#c2452d', orange: '#c8651f', slate: '#756f64', charcoal: '#2c3033', grid: '#e6e3dc' }
+const PIE = ['#c8651f', '#2c3033', '#3f8a63', '#9d988d', '#8c4414', '#57534b', '#5f7f8c', '#dc9355', '#756f64', '#c4c0b6']
 
-const tip = { contentStyle: { borderRadius: 8, border: '1px solid #dde0e4', fontSize: 12 }, formatter: (v: unknown) => fmtUGX(num(v)) }
+const tip = { contentStyle: { borderRadius: 3, border: '1px solid #dedbd3', fontSize: 12, boxShadow: 'none' }, formatter: (v: unknown) => fmtUGX(num(v)) }
 const axis = { tick: { fontSize: 11, fill: C.slate }, tickLine: false, axisLine: false } as const
 
 function label(k: string) {
@@ -18,7 +19,7 @@ function label(k: string) {
 export function ChartCard({ title, subtitle, children, empty }: { title: string; subtitle?: string; children: React.ReactNode; empty?: boolean }) {
   return (
     <div className="card p-4">
-      <h3 className="text-sm font-semibold text-charcoal-900">{title}</h3>
+      <h3 className="font-display text-lg font-semibold tracking-tight text-charcoal-900">{title}</h3>
       {subtitle && <p className="text-xs text-slate2-500">{subtitle}</p>}
       <div className="mt-3 h-64">{empty ? <Empty title="No data for this period" /> : children}</div>
     </div>
@@ -118,5 +119,44 @@ export function OperationsCharts({ d }: { d: DashboardData }) {
           <Bar isAnimationActive={false} dataKey="in" name="In" fill={C.green} radius={[3, 3, 0, 0]} /><Bar isAnimationActive={false} dataKey="out" name="Out" fill={C.red} radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer>
       </ChartCard>
     </div>
+  )
+}
+
+type Gran = 'day' | 'week' | 'month'
+const GRAN_LABEL: Record<Gran, string> = { day: 'Daily', week: 'Weekly', month: 'Monthly' }
+function weekStart(date: string) { const d = new Date(date + 'T00:00:00Z'); const off = (d.getUTCDay() + 6) % 7; return addDays(date, -off) }
+
+/** Hero chart: money received vs spent per bucket, with net movement as a line. Transfers are excluded upstream. */
+export function CashFlowChart({ d, range }: { d: DashboardData; range: Range }) {
+  const span = spanDays(range)
+  const auto: Gran = span <= 45 ? 'day' : span <= 200 ? 'week' : 'month'
+  const [pick, setPick] = useState<Gran | null>(null); const gran = pick ?? auto
+  const map = new Map<string, { k: string; received: number; spent: number }>()
+  for (const r of d.daily) {
+    const k = gran === 'day' ? r.date : gran === 'week' ? weekStart(r.date) : r.date.slice(0, 7)
+    const b = map.get(k) ?? { k, received: 0, spent: 0 }
+    b.received += num(r.money_in); b.spent += num(r.money_out); map.set(k, b)
+  }
+  const rows = [...map.values()].sort((a, b) => a.k.localeCompare(b.k)).map((b) => ({ name: label(b.k), received: b.received, spent: b.spent, net: b.received - b.spent }))
+  const totals = rows.reduce((t, r) => ({ rec: t.rec + r.received, sp: t.sp + r.spent }), { rec: 0, sp: 0 })
+  return (
+    <section aria-label="Cash flow" className="card p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h2 className="font-display text-xl font-semibold tracking-tight">Cash flow</h2>
+          <p className="mt-0.5 text-xs text-slate2-500">Money received and spent, {GRAN_LABEL[gran].toLowerCase()}. Transfers between your own accounts are excluded.</p></div>
+        <div role="group" aria-label="Chart interval" className="flex overflow-hidden rounded-md border border-slate2-200">
+          {(Object.keys(GRAN_LABEL) as Gran[]).map((g) => <button key={g} onClick={() => setPick(g)} aria-pressed={gran === g} className={`px-3 py-1.5 text-xs font-medium ${gran === g ? 'bg-charcoal-900 text-white' : 'bg-white text-slate2-600 hover:bg-slate2-100'}`}>{GRAN_LABEL[g]}</button>)}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 bg-ok-500" />Received <b className="tabular-nums">{fmtUGX(totals.rec)}</b></span>
+        <span className="flex items-center gap-2"><i className="h-2.5 w-2.5 bg-brand-500" />Spent <b className="tabular-nums">{fmtUGX(totals.sp)}</b></span>
+        <span className="flex items-center gap-2"><i className="h-0.5 w-3.5 bg-charcoal-700" />Net <b className="tabular-nums">{fmtUGX(totals.rec - totals.sp)}</b></span>
+      </div>
+      <div className="mt-3 h-72 sm:h-80">{rows.length === 0 ? <Empty title="No cash movement in this period" /> : (
+        <ResponsiveContainer><ComposedChart data={rows} barGap={2} margin={{ left: 0, right: 4 }}><CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} minTickGap={16} /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip {...tip} cursor={{ fill: 'rgba(16,18,19,.04)' }} /><ReferenceLine y={0} stroke={C.slate} />
+          <Bar isAnimationActive={false} dataKey="received" name="Received" fill={C.green} maxBarSize={22} /><Bar isAnimationActive={false} dataKey="spent" name="Spent" fill={C.orange} maxBarSize={22} />
+          <Line isAnimationActive={false} dataKey="net" name="Net" stroke={C.charcoal} strokeWidth={2} dot={rows.length < 25 ? { r: 2.5 } : false} /></ComposedChart></ResponsiveContainer>)}</div>
+    </section>
   )
 }

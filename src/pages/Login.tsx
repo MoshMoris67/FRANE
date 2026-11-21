@@ -37,7 +37,7 @@ export default function Login() {
       <div className="flex items-center justify-center px-5 py-10">
         <form onSubmit={submit} className="w-full max-w-sm space-y-4">
           <div className="lg:hidden"><Brand light={false} /></div>
-          <div><h2 className="font-display text-3xl font-bold uppercase tracking-wide">{mode === 'in' ? 'Sign in' : 'Create account'}</h2>
+          <div><h2 className="font-display text-3xl font-bold">{mode === 'in' ? 'Sign in' : 'Create account'}</h2>
             <p className="text-sm text-slate2-500">FRANE CONCRETE FACTORY management system</p></div>
           {!isConfigured && <Notice tone="amber">Supabase is not configured. Copy <code>.env.example</code> to <code>.env</code> and set your project URL and anon key.</Notice>}
           {mode === 'up' && <Field label="Full name"><input className="input" required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" /></Field>}

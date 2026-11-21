@@ -81,7 +81,7 @@ export default function TransactionDetail({ txn, onClose }: { txn: Txn; onClose:
           </div>
           <p className="mb-3 text-base font-medium">{txn.description}</p>
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-            {rows.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wide text-slate2-500">{k}</dt><dd>{v}</dd></div>)}
+            {rows.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt className="text-xs text-slate2-500">{k}</dt><dd>{v}</dd></div>)}
           </dl>
           {txn.reversal_reason && <div className="mt-3"><Notice tone="amber"><b>Reversal reason:</b> {txn.reversal_reason}</Notice></div>}
           {txn.attachments?.length > 0 && <div className="mt-4"><p className="label">Attachments</p><div className="flex flex-wrap gap-2">{txn.attachments.map((a) => <button key={a.path} onClick={() => openFile(a.path)} className="btn-ghost !py-1 text-xs"><Paperclip size={12} />{a.name}</button>)}</div></div>}
