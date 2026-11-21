@@ -1,6 +1,6 @@
 import { ATTACH_ACCEPT, checkAttachments, safeName } from '../../lib/files'
-import { useMemo, useRef, useState } from 'react'
-import { Paperclip, X, ArrowRight, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Paperclip, X, ArrowRight, Plus, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 import { Modal, Field, Notice } from '../../components/ui'
 import { supabase, errMsg, isDuplicate } from '../../lib/supabase'
@@ -38,6 +38,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
   const [error, setError] = useState('')
   const [dupe, setDupe] = useState(false)
   const key = useRef(crypto.randomUUID())
+  const [showMore, setShowMore] = useState(false)
 
   const rule = ruleFor(type)
   const active = (accounts.data ?? []).filter((a) => a.status === 'active')
@@ -47,6 +48,15 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
   const value = Number(amount.replace(/,/g, ''))
   const types = TYPE_RULES.filter((r) => r.type !== 'adjustment' || can('transactions', 'edit'))
   const effDirection = rule.direction === 'choose' ? direction : rule.direction
+
+  // fast entry: start on the account (and payment method) used last time, or the only account there is
+  useEffect(() => {
+    if (accountId || active.length === 0) return
+    let last: { account?: string; method?: string } = {}
+    try { last = JSON.parse(localStorage.getItem('frane.txn.last') || '{}') } catch { /* ignore */ }
+    const pick = active.find((a) => a.id === last.account) ?? (active.length === 1 ? active[0] : undefined)
+    if (pick) { setAccountId(pick.id); if (last.method) setMethod(last.method) }
+  }, [accounts.data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const method_options = useMemo(() => settings.data?.payment_methods ?? ['Cash'], [settings.data])
 
@@ -117,6 +127,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
         })
         if (e) throw e
       }
+      try { localStorage.setItem('frane.txn.last', JSON.stringify({ account: accountId, method })) } catch { /* ignore */ }
       await refresh()
       toast(mode === 'transfer' ? 'Transfer recorded' : 'Transaction recorded')
       if (again) reset(); else onClose()
@@ -129,7 +140,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
   return (
     <Modal open onClose={onClose} title="Record Transaction" wide
       footer={<>
-        <button className="btn-ghost" onClick={onClose} disabled={busy}>Cancel</button>
+        <button className="btn-ghost max-sm:hidden" onClick={onClose} disabled={busy}>Cancel</button>
         <button className="btn-ghost" onClick={() => submit(true)} disabled={busy}>Save & add another</button>
         <button className="btn-primary" onClick={() => submit(false)} disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
       </>}>
@@ -141,21 +152,23 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
         {mode === 'transaction' && (
-          <div className="sm:col-span-2">
-            <Field label="Transaction type">
-              <select className="input" value={type} onChange={(e) => { setType(e.target.value as TxnType); setCategoryId(''); setPartyId(''); setDupe(false) }}>
-                {types.map((r) => <option key={r.type} value={r.type}>{r.label}</option>)}
-              </select>
-            </Field>
+          <div className="min-w-0 sm:col-span-2">
+            <span className="label">Transaction type</span>
+            <div role="radiogroup" aria-label="Transaction type" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+              {types.map((r) => (
+                <button key={r.type} type="button" role="radio" aria-checked={type === r.type} onClick={() => { setType(r.type); setCategoryId(''); setPartyId(''); setDupe(false) }}
+                  className={clsx('shrink-0 rounded-md border px-3.5 py-2 text-sm font-medium', type === r.type ? 'border-brand-500 bg-brand-500 text-white' : 'border-slate2-200 bg-white text-slate2-700 active:bg-slate2-100')}>{r.label}</button>))}
+            </div>
             <p className="mt-1.5 text-xs text-slate2-500">{rule.effect}</p>
           </div>
         )}
-        <Field label="Date"><input type="date" className="input" value={date} max={today()} onChange={(e) => setDate(e.target.value)} /></Field>
         <Field label="Amount (UGX)" hint={value > 0 ? fmtUGX(value) : undefined}>
-          <input className="input" inputMode="decimal" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ''))} />
+          <input className="input !py-3 !text-2xl !font-semibold" inputMode="decimal" autoFocus aria-label="Amount in UGX" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ''))} />
         </Field>
+
+        <Field label="Date"><input type="date" className="input" value={date} max={today()} onChange={(e) => setDate(e.target.value)} /></Field>
 
         {mode === 'transfer' ? (
           <>
@@ -205,6 +218,8 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
             <div className="sm:col-span-2"><Field label={rule.partyRequired ? "Description (optional)" : "Description"}><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. 200 hollow blocks to Mukasa" /></Field></div>
           </>
         )}
+        <button type="button" className="flex items-center gap-1 text-sm font-medium text-brand-600 sm:hidden" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}><ChevronDown size={15} className={clsx('transition-transform', showMore && 'rotate-180')} />{showMore ? 'Fewer details' : 'More details (reference, notes, receipt)'}</button>
+        <div className={clsx('grid gap-3 sm:col-span-2 sm:grid-cols-2', !showMore && 'max-sm:hidden')}>
         <Field label="Reference no. (optional)"><input className="input" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Receipt / MoMo / cheque no." /></Field>
         {mode === 'transfer' && <Field label="Description (optional)"><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>}
         <div className="sm:col-span-2"><Field label={type === 'adjustment' && mode === 'transaction' ? 'Reason for adjustment (required)' : 'Notes (optional)'}><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field></div>
@@ -223,6 +238,7 @@ export default function TransactionDialog({ initialMode = 'transaction', onClose
                 <button onClick={() => setFiles((x) => x.filter((_, j) => j !== i))} aria-label="Remove file"><X size={14} /></button></li>))}</ul>}
           </div>
         )}
+        </div>
       </div>
 
       <div className="mt-4 space-y-2">

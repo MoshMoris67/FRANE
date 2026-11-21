@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Plus, Factory, FileDown, FileSpreadsheet } from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Empty, Badge } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Badge, FilterBar } from '../components/ui'
 import { NewBatchDialog } from '../features/production/BatchDialogs'
 import { BATCH_LABEL, BATCH_TONE } from './BatchDetail'
 import { supabase } from '../lib/supabase'
@@ -44,15 +44,15 @@ function Batches() {
   const list = (data ?? []).filter((b) => !q || `${b.batch_no} ${b.products?.name ?? ''} ${b.supervisor ?? ''}`.toLowerCase().includes(q.toLowerCase()))
   return (
     <>
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-3"><input className="input sm:col-span-2" placeholder="Search batch, product, supervisor…" aria-label="Search batches" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" aria-label="Batch status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{Object.entries(BATCH_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+      <FilterBar className="sm:grid-cols-3"><input className="input sm:col-span-2" placeholder="Search batch, product, supervisor…" aria-label="Search batches" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select className="input" aria-label="Batch status" value={status} onChange={(e) => setStatus(e.target.value)}><option value="">All statuses</option>{Object.entries(BATCH_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></FilterBar>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}
       {data && (list.length === 0 ? <div className="card"><Empty icon={<Factory size={22} />} title="No batches yet">Create a batch, record the cement, sand and labour used, then complete it to add finished goods to stock.</Empty></div> : (
         <div className="card overflow-hidden">
           <ul className="divide-y divide-slate2-100 md:hidden">{list.map((b) => (
             <li key={b.id}><Link to={`/production/${b.id}`} className="block px-4 py-3"><div className="flex items-start justify-between gap-2"><div><p className="font-medium">{b.products?.name}</p><p className="text-xs text-slate2-500">{b.batch_no} · {fmtDate(b.production_date)}</p></div><Badge tone={BATCH_TONE[b.status]}>{BATCH_LABEL[b.status]}</Badge></div>
               <p className="mt-1 text-sm text-slate2-600">{b.status === 'completed' ? `${fmtNum(b.qty_accepted)} accepted of ${fmtNum(b.qty_produced)}` : `Planned ${fmtNum(b.qty_planned)}`} · {fmtUGX(b.total_cost)}</p></Link></li>))}</ul>
-          <div className="hidden overflow-x-auto md:block"><table className="w-full"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Batch</th><th className="th">Date</th><th className="th">Product</th><th className="th text-right">Planned</th><th className="th text-right">Produced</th><th className="th text-right">Rejected</th><th className="th text-right">Total cost</th><th className="th text-right">Cost/unit</th><th className="th">Status</th></tr></thead>
+          <div className="hidden overflow-x-auto md:block"><table className="stack w-full"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Batch</th><th className="th">Date</th><th className="th">Product</th><th className="th text-right">Planned</th><th className="th text-right">Produced</th><th className="th text-right">Rejected</th><th className="th text-right">Total cost</th><th className="th text-right">Cost/unit</th><th className="th">Status</th></tr></thead>
             <tbody className="divide-y divide-slate2-100">{list.map((b) => (
               <tr key={b.id} className="cursor-pointer hover:bg-slate2-50" onClick={() => nav(`/production/${b.id}`)}><td className="td font-mono text-xs"><Link to={`/production/${b.id}`} onClick={(e) => e.stopPropagation()} className="text-brand-600">{b.batch_no}</Link></td><td className="td whitespace-nowrap">{fmtDate(b.production_date)}</td><td className="td">{b.products?.name}</td>
                 <td className="td num">{fmtNum(b.qty_planned)}</td><td className="td num">{b.status === 'completed' ? fmtNum(b.qty_produced) : '—'}</td><td className={clsx('td num', b.qty_rejected > 0 && 'text-red-600')}>{b.status === 'completed' ? fmtNum(b.qty_rejected) : '—'}</td>
@@ -87,10 +87,10 @@ function Reports() {
           <ResponsiveContainer><BarChart data={data.by_day.map((d) => ({ name: d.date.slice(8, 10) + '/' + d.date.slice(5, 7), accepted: num(d.accepted), rejected: num(d.rejected) }))}><CartesianGrid stroke="#e6e8eb" vertical={false} /><XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} /><YAxis tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={44} /><Tooltip /><Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar isAnimationActive={false} dataKey="accepted" name="Accepted" stackId="a" fill="#059669" /><Bar isAnimationActive={false} dataKey="rejected" name="Rejected" stackId="a" fill="#dc2626" radius={[3, 3, 0, 0]} /></BarChart></ResponsiveContainer></ChartCard>
         <section className="card overflow-x-auto"><h2 className="border-b border-slate2-200 px-4 py-3 text-sm font-semibold">By product</h2>{data.by_product.length === 0 ? <p className="p-4 text-sm text-slate2-500">No completed batches in this period.</p> : (
-          <table className="w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Product</th><th className="th text-right">Batches</th><th className="th text-right">Produced</th><th className="th text-right">Accepted</th><th className="th text-right">Rejected</th><th className="th text-right">Cost</th><th className="th text-right">Cost / unit</th></tr></thead>
+          <table className="stack w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Product</th><th className="th text-right">Batches</th><th className="th text-right">Produced</th><th className="th text-right">Accepted</th><th className="th text-right">Rejected</th><th className="th text-right">Cost</th><th className="th text-right">Cost / unit</th></tr></thead>
             <tbody className="divide-y divide-slate2-100">{data.by_product.map((r) => <tr key={r.product}><td className="td font-medium">{r.product}</td><td className="td num">{r.batches}</td><td className="td num">{fmtNum(r.produced)}</td><td className="td num">{fmtNum(r.accepted)}</td><td className="td num">{fmtNum(r.rejected)}</td><td className="td num">{fmtUGX(num(r.cost))}</td><td className="td num font-medium">{r.cost_per_unit ? fmtUGX(num(r.cost_per_unit)) : '—'}</td></tr>)}</tbody></table>)}</section>
         <section className="card overflow-x-auto"><h2 className="border-b border-slate2-200 px-4 py-3 text-sm font-semibold">Raw material consumption</h2>{data.materials.length === 0 ? <p className="p-4 text-sm text-slate2-500">No materials used in this period.</p> : (
-          <table className="w-full min-w-[420px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Material</th><th className="th text-right">Quantity</th><th className="th text-right">Cost</th></tr></thead>
+          <table className="stack w-full min-w-[420px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Material</th><th className="th text-right">Quantity</th><th className="th text-right">Cost</th></tr></thead>
             <tbody className="divide-y divide-slate2-100">{data.materials.map((r) => <tr key={r.material}><td className="td font-medium">{r.material}</td><td className="td num">{fmtNum(r.quantity)} {r.unit}</td><td className="td num">{fmtUGX(num(r.cost))}</td></tr>)}</tbody></table>)}</section>
       </>)}
     </div>

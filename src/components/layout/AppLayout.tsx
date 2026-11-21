@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { watchStackTables } from '../../lib/stackTables'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ChevronsLeft, ChevronsRight, LogOut, Plus, Menu, X, Search, ArrowLeftRight } from 'lucide-react'
 import clsx from 'clsx'
@@ -59,6 +60,7 @@ function Shell() {
   const canRecord = can('transactions', 'create'); const onDash = loc.pathname === '/' && can('dashboard', 'view')
   const toggle = () => setCollapsed((c) => { try { localStorage.setItem('frane.sidebar', c ? '0' : '1') } catch { /* ignore */ } return !c })
   useEffect(() => { setDrawer(false); setMsearch(false) }, [loc.pathname])
+  useEffect(() => { const m = document.querySelector('main'); return m ? watchStackTables(m as HTMLElement) : undefined }, [])
 
   const tabs = [
     { to: '/', label: 'Home', icon: NAV[0].icon, module: 'dashboard' },

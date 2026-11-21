@@ -80,7 +80,7 @@ export default function SaleDetail() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <section className="card overflow-hidden">
-            <div className="overflow-x-auto"><table className="w-full min-w-[520px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Item</th><th className="th text-right">Qty</th><th className="th text-right">Unit price</th><th className="th text-right">Discount</th><th className="th text-right">Total</th></tr></thead>
+            <div className="overflow-x-auto"><table className="stack w-full min-w-[520px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Item</th><th className="th text-right">Qty</th><th className="th text-right">Unit price</th><th className="th text-right">Discount</th><th className="th text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-slate2-100">{items.map((it) => <tr key={it.id}><td className="td">{it.description}</td><td className="td num">{it.quantity} {it.unit}</td><td className="td num">{fmtUGX(it.unit_price)}</td><td className="td num">{it.discount ? fmtUGX(it.discount) : '—'}</td><td className="td num font-medium">{fmtUGX(it.line_total)}</td></tr>)}</tbody></table></div>
             <dl className="ml-auto max-w-xs space-y-1 px-4 py-3 text-sm">
               <div className="flex justify-between"><dt className="text-slate2-500">Subtotal</dt><dd className="tabular-nums">{fmtUGX(s.subtotal)}</dd></div>

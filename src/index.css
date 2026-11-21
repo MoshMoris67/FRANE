@@ -43,3 +43,20 @@
   main a.text-xs, main a.inline-flex, main a.font-semibold { display: inline-flex; align-items: center; padding-inline: 6px; }
   main td button:not(.btn), main li button:not(.btn) { padding-inline: 6px; }
 }
+
+/* ---- Phone: wide data tables become stacked, labelled cards (labels come from the column headers, see lib/stackTables.ts) ---- */
+@media (max-width: 639px) {
+  table.stack { min-width: 0 !important; width: 100%; }
+  table.stack, table.stack tbody { display: block; }
+  table.stack thead { display: none; }
+  table.stack tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 14px; padding: 0.7rem 0.9rem; border-bottom: 1px solid theme('colors.slate2.100'); }
+  table.stack tr:last-child { border-bottom: 0; }
+  table.stack td { display: block; padding: 0; border: 0; min-width: 0; text-align: left !important; overflow-wrap: anywhere; }
+  table.stack td:empty { display: none; }
+  table.stack td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; line-height: 1.3; color: theme('colors.slate2.500'); }
+  table.stack td:first-child, table.stack td[colspan] { grid-column: 1 / -1; }
+  table.stack td.stack-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.5rem; padding-top: 0.15rem; }
+  table.stack td.stack-actions button, table.stack td.stack-actions a { white-space: nowrap; }
+  table.stack td:first-child::before { display: none; }
+  table.stack td:first-child { font-weight: 600; }
+}

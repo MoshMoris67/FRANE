@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, Plus, ArrowLeftRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Empty, Badge } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Badge, FilterBar } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { useAccounts } from '../features/data'
 import { fmtDate, fmtUGX, num, today } from '../lib/format'
@@ -46,13 +46,13 @@ export default function Transactions() {
       <PageHeader title="Transactions" subtitle="Every money movement — posted, auditable, never deleted"
         actions={can('transactions', 'create') ? <button className="btn-primary" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button> : undefined} />
 
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
+      <FilterBar className="lg:grid-cols-6">
         <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search description, reference, ID…" aria-label="Search transactions" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => set('from', e.target.value)} aria-label="From" />
         <input type="date" className="input" value={to} min={from} onChange={(e) => set('to', e.target.value)} aria-label="To" />
         <select className="input" value={type} onChange={(e) => set('type', e.target.value)} aria-label="Type"><option value="">All types</option>{(Object.keys(TXN_LABEL) as TxnType[]).map((t) => <option key={t} value={t}>{TXN_LABEL[t]}</option>)}</select>
         <select className="input" value={account} onChange={(e) => set('account', e.target.value)} aria-label="Account"><option value="">All accounts</option>{(accounts.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-      </div>
+      </FilterBar>
 
       {isLoading && <Spinner />}
       {error && <ErrorBox error={error} retry={() => refetch()} />}
@@ -68,7 +68,7 @@ export default function Transactions() {
                   <span className={clsx('shrink-0 text-sm font-semibold tabular-nums', t.direction === 'in' ? 'text-emerald-700' : 'text-red-600', t.status === 'reversed' && 'line-through opacity-50')}>{t.direction === 'in' ? '+' : '−'}{fmtUGX(t.amount)}</span></button></li>))}</ul>
               {/* desktop table */}
               <div className="hidden overflow-x-auto md:block">
-                <table className="w-full"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
+                <table className="stack w-full"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
                   {['Date', 'ID', 'Type', 'Description', 'Category', 'Account'].map((h) => <th key={h} className="th">{h}</th>)}<th className="th text-right">Amount</th><th className="th">Status</th></tr></thead>
                   <tbody className="divide-y divide-slate2-100">{data.rows.map((t) => (
                     <tr key={t.id} className="cursor-pointer hover:bg-slate2-50" onClick={() => setSelected(t)}>

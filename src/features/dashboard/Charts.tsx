@@ -1,8 +1,9 @@
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ReferenceLine } from 'recharts'
 import type { DashboardData } from '../../lib/types'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { addDays, bucketKey, spanDays, type Range } from '../../lib/dates'
-import { fmtCompact, fmtUGX, num, today } from '../../lib/format'
+import { fmtCompact, fmtDate, fmtUGX, num, today } from '../../lib/format'
 import { TrendingUp } from 'lucide-react'
 import { useDashboard } from './useDashboard'
 import { Empty } from '../../components/ui'
@@ -130,8 +131,25 @@ const CHIP_DAYS: Record<Exclude<Chip, 'Custom'>, number> = { '7D': 7, '30D': 30,
 function weekStart(date: string) { const d = new Date(date + 'T00:00:00Z'); const off = (d.getUTCDay() + 6) % 7; return addDays(date, -off) }
 
 /** Hero trend: money received, money spent and net, with its own range chips. Transfers are excluded upstream. */
+function FlowTip({ active, payload, label: l }: { active?: boolean; payload?: { dataKey: string; value: number; color: string; payload: { range: string } }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  const by = Object.fromEntries(payload.map((p) => [p.dataKey, p.value])) as Record<string, number>
+  const rows: [string, string, number | undefined][] = [['received', 'Received', by.received], ['spent', 'Spent', by.spent], ['net', 'Net', by.net]]
+  return (
+    <div className="rounded-md border border-slate2-200 bg-white px-3 py-2 text-xs shadow-pop">
+      <p className="mb-1 font-semibold text-charcoal-900">{payload[0].payload.range || l}</p>
+      {rows.filter(([, , v]) => v !== undefined).map(([k, name, v]) => (
+        <p key={k} className="flex items-center justify-between gap-5"><span className="flex items-center gap-1.5 text-slate2-600"><i className="h-2 w-2 rounded-full" style={{ background: k === 'received' ? C.green : k === 'spent' ? C.orange : C.charcoal }} />{name}</span><b className="tabular-nums">{(v as number) < 0 ? '−' : ''}{fmtUGX(Math.abs(v as number))}</b></p>))}
+      <p className="mt-1 border-t border-slate2-100 pt-1 text-[11px] text-slate2-500">Tap to open these entries in the cashbook</p>
+    </div>
+  )
+}
+
+/** Hero trend: money received, money spent and net, with its own range chips. Transfers are excluded upstream. Click a point to open that day/week/month in the cashbook. */
 export function CashFlowChart({ className }: { className?: string }) {
+  const nav = useNavigate()
   const [chip, setChip] = useState<Chip>('30D')
+  const [hidden, setHidden] = useState<Record<string, boolean>>({})
   const [custom, setCustom] = useState<Range>({ from: addDays(today(), -29), to: today() })
   const range: Range = chip === 'Custom' ? custom : { from: addDays(today(), -(CHIP_DAYS[chip] - 1)), to: today() }
   const ok = range.from <= range.to
@@ -144,27 +162,38 @@ export function CashFlowChart({ className }: { className?: string }) {
     const b = map.get(k) ?? { k, received: 0, spent: 0 }
     b.received += num(r.money_in); b.spent += num(r.money_out); map.set(k, b)
   }
-  const rows = [...map.values()].sort((a, b) => a.k.localeCompare(b.k)).map((b) => ({ name: label(b.k), received: b.received, spent: b.spent, net: b.received - b.spent }))
+  const bucketRange = (k: string): Range => gran === 'day' ? { from: k, to: k } : gran === 'week' ? { from: k, to: addDays(k, 6) } : { from: `${k}-01`, to: addDays(`${addMonth(k)}-01`, -1) }
+  const rows = [...map.values()].sort((a, b) => a.k.localeCompare(b.k)).map((b) => { const r = bucketRange(b.k); return { k: b.k, name: label(b.k), range: gran === 'day' ? fmtDate(r.from) : `${fmtDate(r.from)} – ${fmtDate(r.to)}`, received: b.received, spent: b.spent, net: b.received - b.spent } })
+  const totals = rows.reduce((t, r) => ({ rec: t.rec + r.received, sp: t.sp + r.spent }), { rec: 0, sp: 0 })
   const dot = (c: string) => (rows.length < 32 ? { r: 3, fill: c, strokeWidth: 0 } : false)
+  const open = (k?: string) => { if (!k) return; const r = bucketRange(k); nav(`/cashbook?from=${r.from}&to=${r.to}`) }
+  const toggle = (k: string) => setHidden((h) => ({ ...h, [k]: !h[k] }))
+  const legend = [['received', 'Money Received', 'bg-ok-500', totals.rec], ['spent', 'Money Spent', 'bg-brand-500', totals.sp], ['net', 'Net Cash Flow', 'bg-charcoal-700', totals.rec - totals.sp]] as const
   return (
     <section aria-label="Cash flow trend" className={`card p-4 sm:p-5 ${className ?? ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2.5 font-display text-xl font-semibold tracking-tight"><TrendingUp size={20} className="text-brand-500" />Cash Flow Trend</h2>
         <div role="group" aria-label="Chart range" className="flex flex-wrap gap-1">
-          {(['7D', '30D', '3M', '6M', '1Y', 'Custom'] as Chip[]).map((c) => <button key={c} onClick={() => setChip(c)} aria-pressed={chip === c} className={`rounded-md px-3 py-1 text-xs font-semibold ${chip === c ? 'bg-brand-500 text-white' : 'bg-slate2-100 text-slate2-700 hover:bg-slate2-200'}`}>{c}</button>)}
+          {(['7D', '30D', '3M', '6M', '1Y', 'Custom'] as Chip[]).map((c) => <button key={c} onClick={() => setChip(c)} aria-pressed={chip === c} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${chip === c ? 'bg-brand-500 text-white' : 'bg-slate2-100 text-slate2-700 hover:bg-slate2-200'}`}>{c}</button>)}
         </div>
       </div>
       {chip === 'Custom' && <div className="mt-3 flex items-center gap-2"><input type="date" aria-label="Chart from date" className="input !w-auto" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} /><span className="text-slate2-400">to</span><input type="date" aria-label="Chart to date" className="input !w-auto" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} /></div>}
-      <div className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-1 text-xs text-slate2-700">
-        <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-ok-500" />Money Received</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-brand-500" />Money Spent</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-charcoal-700" />Net Cash Flow</span>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {legend.map(([k, name, bg, total]) => (
+          <button key={k} onClick={() => toggle(k)} aria-pressed={!hidden[k]} title={hidden[k] ? `Show ${name}` : `Hide ${name}`} className={`rounded-md border px-2.5 py-2 text-left transition ${hidden[k] ? 'border-slate2-200 opacity-45' : 'border-slate2-200 hover:border-slate2-400'}`}>
+            <span className="flex items-center gap-1.5 text-[11px] text-slate2-600 sm:text-xs"><i className={`h-2.5 w-2.5 rounded-full ${bg}`} />{name}</span>
+            <span className="figure mt-0.5 block text-base leading-tight sm:text-xl">{total < 0 ? '−' : ''}{fmtUGX(Math.abs(total))}</span>
+          </button>))}
       </div>
-      <div className="mt-2 h-64 sm:h-72">{isLoading ? <Empty title="Loading…" /> : rows.length === 0 ? <Empty title="No cash movement in this period" /> : (
-        <ResponsiveContainer><AreaChart data={rows} margin={{ left: 0, right: 8, top: 6 }}>
+      <div className="mt-3 h-64 sm:h-80">{isLoading ? <Empty title="Loading…" /> : rows.length === 0 ? <Empty title="No cash movement in this period" /> : (
+        <ResponsiveContainer><AreaChart data={rows} margin={{ left: 0, right: 8, top: 6 }} style={{ cursor: 'pointer' }} onClick={(e) => open(rows[Number(e?.activeIndex)]?.k)}>
           <defs><linearGradient id="gRec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={C.green} stopOpacity=".28" /><stop offset="1" stopColor={C.green} stopOpacity="0" /></linearGradient><linearGradient id="gSp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={C.orange} stopOpacity=".24" /><stop offset="1" stopColor={C.orange} stopOpacity="0" /></linearGradient></defs>
-          <CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} minTickGap={18} /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip {...tip} /><ReferenceLine y={0} stroke={C.slate} />
-          <Area isAnimationActive={false} type="monotone" dataKey="received" name="Received" stroke={C.green} strokeWidth={2} fill="url(#gRec)" dot={dot(C.green)} />
-          <Area isAnimationActive={false} type="monotone" dataKey="spent" name="Spent" stroke={C.orange} strokeWidth={2} fill="url(#gSp)" dot={dot(C.orange)} />
-          <Area isAnimationActive={false} type="monotone" dataKey="net" name="Net" stroke={C.charcoal} strokeWidth={2} fill="none" dot={dot(C.charcoal)} /></AreaChart></ResponsiveContainer>)}</div>
+          <CartesianGrid stroke={C.grid} vertical={false} /><XAxis dataKey="name" {...axis} minTickGap={22} interval="preserveStartEnd" /><YAxis {...axis} tickFormatter={fmtCompact} width={44} /><Tooltip content={<FlowTip />} cursor={{ stroke: C.slate, strokeDasharray: '3 3' }} /><ReferenceLine y={0} stroke={C.slate} />
+          {!hidden.received && <Area isAnimationActive={false} type="monotone" dataKey="received" name="Received" stroke={C.green} strokeWidth={2.5} fill="url(#gRec)" dot={dot(C.green)} activeDot={{ r: 5 }} />}
+          {!hidden.spent && <Area isAnimationActive={false} type="monotone" dataKey="spent" name="Spent" stroke={C.orange} strokeWidth={2.5} fill="url(#gSp)" dot={dot(C.orange)} activeDot={{ r: 5 }} />}
+          {!hidden.net && <Area isAnimationActive={false} type="monotone" dataKey="net" name="Net" stroke={C.charcoal} strokeWidth={2.5} strokeDasharray="5 3" fill="none" dot={dot(C.charcoal)} activeDot={{ r: 5 }} />}</AreaChart></ResponsiveContainer>)}</div>
+      <p className="mt-1 text-[11px] text-slate2-500">Tap a legend box to hide a line. Tap the chart to open that {gran} in the cashbook. Transfers between your own accounts are excluded.</p>
     </section>
   )
 }
+const addMonth = (k: string) => { const [y, m] = k.split('-').map(Number); return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}` }

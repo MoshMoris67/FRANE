@@ -42,7 +42,7 @@ export default function MovementsTab({ itemId, kind: initialKind }: { itemId?: s
       </div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} />}
       {data && (data.length === 0 ? <div className="card"><Empty title="No movements in this period" /></div> : (
-        <div className="card overflow-x-auto"><table className="w-full min-w-[720px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Item</th><th className="th">Type</th><th className="th text-right">Quantity</th><th className="th text-right">Unit cost</th><th className="th text-right">Balance</th><th className="th">Source / note</th></tr></thead>
+        <div className="card overflow-x-auto"><table className="stack w-full min-w-[720px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Item</th><th className="th">Type</th><th className="th text-right">Quantity</th><th className="th text-right">Unit cost</th><th className="th text-right">Balance</th><th className="th">Source / note</th></tr></thead>
           <tbody className="divide-y divide-slate2-100">{data.map((m) => (
             <tr key={m.id}><td className="td whitespace-nowrap">{fmtDate(m.movement_date)}</td><td className="td">{name(m)}</td><td className="td whitespace-nowrap">{STOCK_KIND_LABEL[m.kind]}{m.flagged_negative && <> <Badge tone="red">Negative</Badge></>}</td>
               <td className={clsx('td num font-medium', m.quantity > 0 ? 'text-emerald-700' : 'text-red-600')}>{m.quantity > 0 ? '+' : ''}{fmtNum(m.quantity)} {unit(m)}</td><td className="td num">{fmtUGX(Math.round(m.unit_cost))}</td><td className="td num">{fmtNum(m.balance_after)}</td>

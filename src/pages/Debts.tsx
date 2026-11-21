@@ -69,7 +69,7 @@ export default function Debts() {
 
           <div className="card overflow-hidden">
             {rows.length === 0 ? <Empty icon={<HandCoins size={22} />} title={isRec ? 'No unpaid customer invoices' : 'No unpaid supplier invoices'} /> : (
-              <div className="overflow-x-auto"><table className="w-full min-w-[760px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
+              <div className="overflow-x-auto"><table className="stack w-full min-w-[760px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
                 <th className="th">{isRec ? 'Customer' : 'Supplier'}</th><th className="th">Invoice</th><th className="th">Date</th><th className="th">Due</th><th className="th text-right">Amount</th><th className="th text-right">Balance</th><th className="th">Status</th><th className="th" /></tr></thead>
                 <tbody className="divide-y divide-slate2-100">{rows.map((r) => {
                   const rr = r as Receivable & Payable

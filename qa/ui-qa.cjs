@@ -70,7 +70,12 @@ const A11Y = () => {
       if (a.unlabelled.length) fail(`${label}: form controls without a label`, [...new Set(a.unlabelled)].slice(0, 3).join(', '))
       if (vn.startsWith('phone') && a.small.length) warn(`${label}: small tap targets`, [...new Set(a.small)].slice(0, 4).join(', '))
     }
-    if (true) { await page.goto(BASE + '/'); await page.waitForTimeout(500); await page.screenshot({ path: path.join(OUT, vn + '-dashboard.png'), fullPage: true }) }
+    if (vn === 'phone390' || vn === 'desktop') {
+      for (const r of ['/', '/cashbook', '/sales', '/sales/new', '/debts', '/inventory', '/daily-closing', '/accounts', '/customers/c1']) {
+        await page.goto(BASE + r); await page.waitForTimeout(500)
+        await page.screenshot({ path: path.join(OUT, `${vn}-${r === '/' ? 'dashboard' : r.slice(1).replace(/\//g, '_')}.png`), fullPage: false })
+      }
+    }
     await ctx.close()
   }
 
@@ -136,6 +141,18 @@ const A11Y = () => {
   {
     const errors = []; const { ctx, page } = await newPage(browser, VIEWPORTS.phone390, fullPerms, errors)
     await page.goto(BASE + '/'); await page.waitForTimeout(500)
+    await page.getByRole('button', { name: /Record Transaction/ }).first().click(); await page.waitForTimeout(300)
+    await page.screenshot({ path: path.join(OUT, 'phone390-record.png') })
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150)
+    await page.goto(BASE + '/customers/c1'); await page.waitForTimeout(500)
+    await page.getByRole('button', { name: /Receive payment/ }).first().click(); await page.waitForTimeout(400)
+    await page.screenshot({ path: path.join(OUT, 'phone390-receive.png') })
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150)
+    await page.goto(BASE + '/inventory'); await page.waitForTimeout(500)
+    await page.getByRole('button', { name: /^Adjust/ }).first().click(); await page.waitForTimeout(400)
+    await page.screenshot({ path: path.join(OUT, 'phone390-adjust.png') })
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150)
+    await page.goto(BASE + '/'); await page.waitForTimeout(400)
     await page.getByRole('button', { name: /Record Transaction/ }).first().click(); await page.waitForTimeout(300)
     await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(200)
     ;(await page.getByText('Select an account.').count()) ? ok('record transaction: empty form is refused with a clear message (phone)') : fail('record transaction validation')

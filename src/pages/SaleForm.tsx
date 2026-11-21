@@ -106,15 +106,15 @@ export default function SaleForm() {
               const p = prodById.get(l.productId)
               return (
                 <div key={l.key} className="rounded-lg border border-slate2-200 p-3">
-                  <div className="grid gap-2 sm:grid-cols-12">
-                    <div className="sm:col-span-5"><span className="label">Product</span>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-12">
+                    <div className="col-span-3 sm:col-span-5"><span className="label">Product</span>
                       <select className="input" aria-label={`Product, line ${i + 1}`} value={l.productId} onChange={(e) => pickProduct(l.key, e.target.value)}><option value="">Custom item…</option>{(products.data ?? []).filter((x) => x.status === 'active').map((x) => <option key={x.id} value={x.id}>{x.name}{x.dimensions ? ` ${x.dimensions}` : ''} — {fmtUGX(x.selling_price)}</option>)}</select>
                       {!l.productId && <input className="input mt-1.5" aria-label={`Item description, line ${i + 1}`} placeholder="Describe the item" value={l.description} onChange={(e) => setLine(l.key, { description: e.target.value })} />}</div>
                     <div className="sm:col-span-2"><span className="label">Qty{p ? ` (${p.unit})` : ''}</span><input className="input" aria-label={`Quantity, line ${i + 1}`} inputMode="decimal" value={l.qty} onChange={(e) => setLine(l.key, { qty: e.target.value.replace(/[^\d.]/g, '') })} /></div>
                     <div className="sm:col-span-2"><span className="label">Unit price</span><input className="input" aria-label={`Unit price, line ${i + 1}`} inputMode="decimal" value={l.price} onChange={(e) => setLine(l.key, { price: e.target.value.replace(/[^\d.]/g, '') })} />
                       {p && n(l.price) !== p.selling_price && l.price !== '' && <span className="mt-0.5 block text-[11px] text-amber-700">List price {fmtUGX(p.selling_price)}</span>}</div>
                     <div className="sm:col-span-2"><span className="label">Discount</span><input className="input" aria-label={`Discount, line ${i + 1}`} inputMode="decimal" value={l.discount} onChange={(e) => setLine(l.key, { discount: e.target.value.replace(/[^\d.]/g, '') })} /></div>
-                    <div className="flex items-end justify-between gap-2 sm:col-span-1 sm:flex-col sm:items-end sm:justify-end">
+                    <div className="col-span-3 flex items-center justify-between gap-2 border-t border-slate2-100 pt-2 sm:col-span-1 sm:flex-col sm:items-end sm:justify-end sm:border-0 sm:pt-0">
                       <span className="text-sm font-semibold tabular-nums">{fmtUGX(lineTotal(l))}</span>
                       {lines.length > 1 && <button type="button" aria-label={`Remove line ${i + 1}`} className="rounded p-1 text-slate2-400 hover:text-red-600" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))}><Trash2 size={16} /></button>}</div>
                   </div>

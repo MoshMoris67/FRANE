@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ExternalLink, FileDown, FileSpreadsheet, FileText } from 'lucide-react'
 import clsx from 'clsx'
-import { Spinner, ErrorBox, Empty, Notice } from '../../components/ui'
+import { Spinner, ErrorBox, Empty, Notice, FilterBar } from '../../components/ui'
 import { REPORTS, type ReportDef, type ReportFilters } from './catalog'
 import { useAccounts, useCategories } from '../data'
 import { useCustomerBalances, useProducts, useSupplierList } from '../commercial/hooks'
@@ -47,11 +47,11 @@ function Viewer({ def, onBack }: { def: ReportDef; onBack: () => void }) {
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><h2 className="font-display text-2xl font-bold">{def.title}</h2><p className="text-sm text-slate2-500">{def.description}</p></div>
         <div className="flex gap-2"><button className="btn-ghost" disabled={!q.data} onClick={() => exportXLSX(table())}><FileSpreadsheet size={15} />Excel</button><button className="btn-ghost" disabled={!q.data} onClick={() => exportCSV(table())}><FileDown size={15} />CSV</button><button className="btn-ghost" disabled={!q.data} onClick={() => exportPDF(table())}><FileText size={15} />PDF</button></div></div>
       {(def.filters.length > 0) && (
-        <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4">
+        <FilterBar className="lg:grid-cols-4">
           {has('dates') && <><input type="date" className="input" value={f.from} max={f.to} onChange={(e) => setF({ ...f, from: e.target.value })} aria-label="From" /><input type="date" className="input" value={f.to} min={f.from} onChange={(e) => setF({ ...f, to: e.target.value })} aria-label="To" /></>}
           {sel('product', 'Product', (products.data ?? []).map((p) => ({ id: p.id, name: p.name })))}{sel('customer', 'Customer', (customers.data ?? []).map((c) => ({ id: c.id, name: c.name })))}{sel('supplier', 'Supplier', suppliers.data ?? [])}
           {sel('category', 'Category', (cats.data ?? []).map((c) => ({ id: c.id, name: `${c.name} (${c.kind})` })))}{sel('account', 'Account', (accounts.data ?? []).map((a) => ({ id: a.id, name: a.name })))}
-        </div>)}
+        </FilterBar>)}
       {need && <Notice tone="amber">Choose {def.requires} to run this report.</Notice>}
       {q.isLoading && !need && <Spinner />}{q.error && <ErrorBox error={q.error} />}
       {q.data && (<>

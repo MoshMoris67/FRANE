@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Search, ShoppingCart } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Empty, Badge } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Badge, FilterBar } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { fmtDate, fmtUGX, num } from '../lib/format'
 import { presetRange } from '../lib/dates'
@@ -42,13 +42,13 @@ export default function Sales() {
         actions={can('sales', 'create') ? <Link to="/sales/new" className="btn-primary"><Plus size={16} />New sale</Link> : undefined} />
       <div className="mb-4 grid grid-cols-3 gap-3">{[['Invoiced', sum('total'), ''], ['Collected', sum('amount_paid'), 'text-emerald-700'], ['Still owing', sum('balance'), 'text-red-600']].map(([l, v, c]) => (
         <div key={l as string} className="card p-3"><p className="text-[11px] font-semibold text-slate2-500">{l}</p><p className={clsx('mt-1 font-display text-lg font-bold tabular-nums sm:text-2xl', c)}>{fmtUGX(v as number)}</p></div>))}</div>
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-5">
+      <FilterBar className="lg:grid-cols-5">
         <div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Invoice or customer…" aria-label="Search invoices" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => set('from', e.target.value)} aria-label="From" />
         <input type="date" className="input" value={to} min={from} onChange={(e) => set('to', e.target.value)} aria-label="To" />
         <select className="input" value={status} onChange={(e) => set('status', e.target.value)} aria-label="Status"><option value="">All sales</option><option value="draft">Drafts</option><option value="confirmed">Confirmed</option><option value="unpaid">Unpaid / part-paid</option><option value="paid">Fully paid</option><option value="cancelled">Cancelled</option></select>
         <select className="input" value={delivery} onChange={(e) => set('delivery', e.target.value)} aria-label="Delivery"><option value="">Any delivery</option><option value="open">Awaiting fulfilment</option>{['pending', 'loading', 'dispatched', 'delivered'].map((d) => <option key={d} value={d}>{DELIVERY_LABEL[d]}</option>)}</select>
-      </div>
+      </FilterBar>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}
       {data && (list.length === 0 ? <div className="card"><Empty icon={<ShoppingCart size={22} />} title="No sales found">Create a sale, or widen the date range.</Empty></div> : (
         <div className="card overflow-hidden">

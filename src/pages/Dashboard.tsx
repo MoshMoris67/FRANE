@@ -1,17 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Plus, ArrowRight, ChevronRight, Wallet, Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Users, CalendarClock, Trophy, Receipt, Clock, Truck, PackageX, PiggyBank, AlertCircle, CheckCircle2, Factory, ClipboardList } from 'lucide-react'
+import { ArrowRight, ChevronRight, Wallet, Banknote, Landmark, Smartphone, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Users, CalendarClock, Trophy, Receipt, Clock, Truck, PackageX, PiggyBank, AlertCircle, CheckCircle2, Factory, ClipboardList } from 'lucide-react'
 import clsx from 'clsx'
 import { Spinner, ErrorBox } from '../components/ui'
 import { useDashboard } from '../features/dashboard/useDashboard'
 import { buildAlerts } from '../features/dashboard/alerts'
 import { CashFlowChart, PeriodCharts, TrendCharts, OperationsCharts } from '../features/dashboard/Charts'
 import { BlockArt, PaverArt, SlabArt, StackArt } from '../features/dashboard/Art'
-import { presetRange } from '../lib/dates'
+import { addDays, presetRange } from '../lib/dates'
 import { fmtUGX, fmtDate, fmtNum, today } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import { TXN_LABEL } from '../lib/types'
-import { useRecord } from '../components/layout/RecordContext'
 import { usePeriod } from '../components/layout/PeriodContext'
 import { useSettings } from '../features/data'
 import { useAuth } from '../auth/AuthContext'
@@ -68,7 +67,7 @@ export default function Dashboard() {
   const { range, valid, label } = usePeriod()
   const { data: d, isLoading, error, refetch } = useDashboard(valid ? range : presetRange('month'))
   const { data: t } = useDashboard(presetRange('today'))
-  const { openRecord } = useRecord(); const { can } = useAuth(); const { data: settings } = useSettings()
+  const { can } = useAuth(); const { data: settings } = useSettings()
   const q = (r: { from: string; to: string }, extra = '') => `/transactions?from=${r.from}&to=${r.to}${extra}`
   const td = presetRange('today'); const mo = presetRange('month')
   const byType = (type: string) => (d?.accounts ?? []).filter((a) => a.type === type).reduce((s, a) => s + a.balance, 0)
@@ -85,11 +84,8 @@ export default function Dashboard() {
   return (
     <>
       {/* Brand banner */}
-      <section className="concrete relative mb-5 overflow-hidden rounded-lg bg-charcoal-900 bg-cover bg-[position:70%_62%]" style={{ backgroundImage: "linear-gradient(90deg, rgba(16,18,19,.92) 0%, rgba(16,18,19,.78) 32%, rgba(16,18,19,.12) 75%), url(/factory-banner.jpg), url(/banner-art.svg)" }}>
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8 sm:py-8">
-          <div><h1 className="font-display text-3xl font-semibold uppercase leading-none tracking-wide text-white sm:text-[2.6rem]">{name}</h1><p className="mt-2 text-base italic text-slate2-200 sm:text-lg">Concrete blocks, pavers and more…</p><div className="mt-3 h-[3px] w-24 bg-brand-500" /></div>
-          {can('transactions', 'create') && <button className="btn-primary h-11 rounded-md px-5 lg:hidden" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button>}
-        </div>
+      <section className="concrete relative mb-4 overflow-hidden rounded-lg bg-charcoal-900 bg-cover bg-[position:70%_62%] sm:mb-5" style={{ backgroundImage: "linear-gradient(90deg, rgba(16,18,19,.92) 0%, rgba(16,18,19,.78) 32%, rgba(16,18,19,.12) 75%), url(/factory-banner.jpg), url(/banner-art.svg)" }}>
+        <div className="relative z-10 px-4 py-4 sm:px-8 sm:py-8"><h1 className="font-display text-2xl font-semibold uppercase leading-none tracking-wide text-white sm:text-[2.6rem]">{name}</h1><p className="mt-1.5 text-sm italic text-slate2-200 sm:mt-2 sm:text-lg">Concrete blocks, pavers and more…</p><div className="mt-2.5 h-[3px] w-20 bg-brand-500 sm:mt-3 sm:w-24" /></div>
       </section>
       {!valid && <p className="mb-4 text-sm text-bad-500">“From” date is after “To” date — showing this month instead.</p>}
       {isLoading && <Spinner />}
@@ -109,8 +105,8 @@ export default function Dashboard() {
                 <div className="min-w-0"><p className="text-lg text-slate2-100">Total Cash Available</p><Link to="/accounts" className={clsx('figure block truncate text-[2.6rem] leading-none sm:text-[3.1rem]', total < 0 && 'text-[#f08a73]')}>{fmtUGX(total)}</Link></div>
               </div>
               {([['Cash on Hand', byType('cash'), Banknote], ['Bank Balance', byType('bank'), Landmark], ['Mobile Money', byType('mobile_money'), Smartphone]] as const).map(([l, v, Ic]) => (
-                <div key={l} className="2xl:border-l 2xl:border-white/10 2xl:px-6"><p className="flex items-center gap-2 text-sm text-slate2-200"><Ic size={18} className="text-slate2-100" />{l}</p><p className="figure mt-1.5 text-2xl">{fmtUGX(v)}</p></div>))}
-              <div className="2xl:border-l 2xl:border-white/10 2xl:pl-6"><p className="flex items-center gap-2 text-sm text-slate2-200"><TrendingUp size={20} className={net >= 0 ? 'text-[#6fd09a]' : 'text-[#f08a73]'} />Net Cash Flow<span className="text-slate2-400">({label})</span></p><p className="figure mt-1.5 text-2xl">{net < 0 ? '−' : ''}{fmtUGX(Math.abs(net))}</p></div>
+                <Link key={l} to="/accounts" className="block rounded-sm hover:bg-white/5 2xl:border-l 2xl:border-white/10 2xl:px-6"><p className="flex items-center gap-2 text-sm text-slate2-200"><Ic size={18} className="text-slate2-100" />{l}</p><p className="figure mt-1.5 text-2xl">{fmtUGX(v)}</p></Link>))}
+              <Link to={`/cashbook?from=${range.from}&to=${range.to}`} className="block rounded-sm hover:bg-white/5 2xl:border-l 2xl:border-white/10 2xl:pl-6"><p className="flex items-center gap-2 text-sm text-slate2-200"><TrendingUp size={20} className={net >= 0 ? 'text-[#6fd09a]' : 'text-[#f08a73]'} />Net Cash Flow<span className="text-slate2-400">({label})</span></p><p className="figure mt-1.5 text-2xl">{net < 0 ? '−' : ''}{fmtUGX(Math.abs(net))}</p></Link>
             </div>
           </section>
 
@@ -137,7 +133,7 @@ export default function Dashboard() {
             <Tile label="Customer Collections" value={fmtUGX(t?.collections)} icon={Users} c="blue" to={q(td, '&type=customer_payment')} foot={<span className="text-xs text-slate2-500">Not counted as revenue</span>} />
             <Tile label="Monthly Revenue" value={fmtUGX(d.month_revenue)} icon={CalendarClock} c="navy" to={q(mo, '&type=income')} foot={<Delta now={d.month_revenue} prev={prev ? Number(prev.revenue) : undefined} />} />
             <Tile label="Monthly Expenses" value={fmtUGX(d.month_expenses)} icon={TrendingDown} c="orange" to={q(mo, '&type=expense')} foot={<Delta now={d.month_expenses} prev={prev ? Number(prev.expenses) : undefined} goodUp={false} />} />
-            <Tile label="Estimated Profit" value={fmtUGX(profit)} icon={Trophy} c="gold" foot={<Delta now={profit} prev={prev ? Number(prev.revenue) - Number(prev.expenses) : undefined} />} />
+            <Tile label="Estimated Profit" value={fmtUGX(profit)} icon={Trophy} c="gold" to="/reports?tab=pnl" foot={<Delta now={profit} prev={prev ? Number(prev.revenue) - Number(prev.expenses) : undefined} />} />
           </section>
 
           {/* Accounts · factory · activity */}
@@ -146,7 +142,7 @@ export default function Dashboard() {
               <div className="relative z-10 flex h-full flex-col">
                 <div className="flex items-center justify-between px-4 py-3.5"><h2 className="flex items-center gap-2.5 font-display text-lg font-semibold"><Landmark size={18} />Accounts Summary</h2><Link to="/accounts" className="inline-flex items-center gap-1 text-xs font-medium text-brand-400 hover:text-brand-100">View All<ArrowRight size={13} /></Link></div>
                 <ul className="flex-1 px-4">{d.accounts.map((a) => { const [Ic, bg] = ACCT_ICON[a.type as keyof typeof ACCT_ICON] ?? ACCT_ICON.cash; return (
-                  <li key={a.id} className="flex items-center gap-3 border-t border-white/10 py-3"><span className={clsx('flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white', bg)}><Ic size={16} /></span><span className="min-w-0 flex-1 truncate text-sm">{a.name}</span><span className={clsx('figure text-lg', a.balance < 0 && 'text-[#f08a73]')}>{fmtUGX(a.balance)}</span><span className={clsx('h-2 w-2 rounded-full', a.balance < 0 ? 'bg-bad-500' : 'bg-ok-500')} /></li>) })}
+                  <li key={a.id} className="border-t border-white/10"><Link to={`/cashbook?account=${a.id}&from=${addDays(today(), -89)}&to=${today()}`} className="flex items-center gap-3 py-3 hover:bg-white/5"><span className={clsx('flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white', bg)}><Ic size={16} /></span><span className="min-w-0 flex-1 truncate text-sm">{a.name}</span><span className={clsx('figure text-lg', a.balance < 0 && 'text-[#f08a73]')}>{fmtUGX(a.balance)}</span><span className={clsx('h-2 w-2 rounded-full', a.balance < 0 ? 'bg-bad-500' : 'bg-ok-500')} /></Link></li>) })}
                   {d.accounts.length === 0 && <li className="border-t border-white/10 py-3 text-sm text-slate2-300">No accounts yet.</li>}</ul>
                 <div className="flex items-baseline justify-between border-t border-white/10 px-4 py-3.5"><span className="font-semibold">Total Balance</span><span className="figure text-2xl text-brand-400">{fmtUGX(total)}</span></div>
               </div>
@@ -156,10 +152,10 @@ export default function Dashboard() {
               <section className="overflow-hidden rounded-lg border border-slate2-200 bg-white">
                 <div className="concrete flex items-center justify-between bg-charcoal-900 px-4 py-3.5 text-white"><h2 className="relative z-10 flex items-center gap-2.5 font-display text-lg font-semibold"><Factory size={18} />Factory Performance</h2><Link to="/production" className="relative z-10 inline-flex items-center gap-1 text-xs font-medium text-slate2-200 hover:text-white">View Details<ArrowRight size={13} /></Link></div>
                 <div className="grid grid-cols-2 gap-px bg-slate2-100 sm:grid-cols-5">
-                  {([['Blocks', fmtNum(sum(/block/i)), BlockArt, 'produced today'], ['Pavers', fmtNum(sum(/paver/i)), PaverArt, 'produced today'], ['Products Sold', fmtNum(soldAll), null, 'units today'], ['Current Stock', fmtNum(d.stock_units), StackArt, 'units'], ['Orders Pending', String(d.pending_orders), null, 'awaiting delivery']] as const).map(([l, v, Art, sub], i) => (
-                    <div key={l} className="flex flex-col items-center bg-white px-2 py-4 text-center">
+                  {([['Blocks', fmtNum(sum(/block/i)), BlockArt, 'produced today', '/production'], ['Pavers', fmtNum(sum(/paver/i)), PaverArt, 'produced today', '/production'], ['Products Sold', fmtNum(soldAll), null, 'units today', '/sales'], ['Current Stock', fmtNum(d.stock_units), StackArt, 'units', '/inventory'], ['Orders Pending', String(d.pending_orders), null, 'awaiting delivery', '/sales?delivery=open&from=2000-01-01']] as const).map(([l, v, Art, sub, to], i) => (
+                    <Link key={l} to={to} className="flex flex-col items-center bg-white px-2 py-4 text-center hover:bg-slate2-50">
                       <div className="flex h-12 items-center">{Art ? <Art /> : i === 2 ? <SlabArt /> : <ClipboardList size={34} className="text-slate2-500" />}</div>
-                      <p className="mt-2 text-xs text-slate2-600">{l}</p><p className="figure text-xl leading-tight">{v}</p><p className="text-[11px] text-slate2-400">{sub}</p></div>))}
+                      <p className="mt-2 text-xs text-slate2-600">{l}</p><p className="figure text-xl leading-tight">{v}</p><p className="text-[11px] text-slate2-400">{sub}</p></Link>))}
                 </div>
                 <p className="border-t border-slate2-100 px-4 py-2.5 text-xs text-slate2-500">{d.batches_in_progress} batch(es) in progress{d.low_stock_products.length ? ` · ${d.low_stock_products.length} product(s) low on stock` : ''} · finished goods worth {fmtUGX(d.stock_value)}</p>
               </section>)}

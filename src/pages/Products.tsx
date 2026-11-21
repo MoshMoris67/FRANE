@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus, Search, Boxes, Pencil, Tags } from 'lucide-react'
-import { PageHeader, Spinner, ErrorBox, Empty, Modal, Field, Notice, Badge } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Modal, Field, Notice, Badge, FilterBar } from '../components/ui'
 import { useProducts, useProductCategories } from '../features/commercial/hooks'
 import { supabase, errMsg } from '../lib/supabase'
 import { fmtUGX } from '../lib/format'
@@ -21,11 +21,11 @@ export default function Products({ embedded = false }: { embedded?: boolean }) {
       ) : (
         <PageHeader title="Products" subtitle="Product catalogue and price list" actions={<>{can('inventory', 'edit') && <button className="btn-ghost" onClick={() => setCatOpen(true)}><Tags size={15} />Categories</button>}{can('inventory', 'create') && <button className="btn-primary" onClick={() => setEdit('new')}><Plus size={16} />Add product</button>}</>} />
       )}
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2"><div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search products…" aria-label="Search products" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <select className="input" aria-label="Product category" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">All categories</option>{(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+      <FilterBar><div className="relative"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search products…" aria-label="Search products" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+        <select className="input" aria-label="Product category" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">All categories</option>{(cats.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></FilterBar>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} retry={() => refetch()} />}
       {data && (list.length === 0 ? <div className="card"><Empty icon={<Boxes size={22} />} title="No products yet">Add your blocks, pavers and other products with their selling prices. Nothing is pre-filled — enter your real sizes and prices.</Empty></div> : (
-        <div className="card overflow-x-auto"><table className="w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Product</th><th className="th">Category</th><th className="th">Size</th><th className="th">Unit</th><th className="th text-right">Selling price</th><th className="th text-right">Est. cost</th><th className="th" /></tr></thead>
+        <div className="card overflow-x-auto"><table className="stack w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Product</th><th className="th">Category</th><th className="th">Size</th><th className="th">Unit</th><th className="th text-right">Selling price</th><th className="th text-right">Est. cost</th><th className="th" /></tr></thead>
           <tbody className="divide-y divide-slate2-100">{list.map((p) => (
             <tr key={p.id}><td className="td"><p className="font-medium">{p.name} {p.status === 'inactive' && <Badge>Inactive</Badge>}</p><p className="font-mono text-xs text-slate2-500">{p.sku}</p></td><td className="td">{p.product_categories?.name ?? '—'}</td><td className="td">{p.dimensions ?? '—'}</td><td className="td">{p.unit}</td>
               <td className="td num font-medium">{fmtUGX(p.selling_price)}</td><td className="td num text-slate2-500">{p.production_cost_estimate ? fmtUGX(p.production_cost_estimate) : '—'}</td>

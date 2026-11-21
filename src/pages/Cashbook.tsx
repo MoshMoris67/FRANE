@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Plus, Search, FileSpreadsheet, FileText, FileDown } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Empty, Badge } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Badge, FilterBar } from '../components/ui'
 import { supabase } from '../lib/supabase'
 import { useAccounts, useCategories } from '../features/data'
 import { fmtDate, fmtNum, fmtUGX, num, today } from '../lib/format'
@@ -13,9 +14,10 @@ import { useAuth } from '../auth/AuthContext'
 import { exportCSV, exportPDF, exportXLSX, type ExportTable } from '../lib/export'
 
 export default function Cashbook() {
-  const [from, setFrom] = useState(presetRange('month').from)
-  const [to, setTo] = useState(today())
-  const [account, setAccount] = useState(''); const [category, setCategory] = useState(''); const [search, setSearch] = useState('')
+  const [sp] = useSearchParams()   // dashboard drill-downs arrive as ?from=&to=&account=
+  const [from, setFrom] = useState(sp.get('from') ?? presetRange('month').from)
+  const [to, setTo] = useState(sp.get('to') ?? today())
+  const [account, setAccount] = useState(sp.get('account') ?? ''); const [category, setCategory] = useState(''); const [search, setSearch] = useState('')
   const accounts = useAccounts(); const categories = useCategories(); const { openRecord } = useRecord(); const { can } = useAuth()
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -54,13 +56,13 @@ export default function Cashbook() {
           {can('transactions', 'create') && <button className="btn-primary" onClick={() => openRecord()}><Plus size={16} />Record Transaction</button>}
         </>} />
 
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6">
+      <FilterBar className="lg:grid-cols-6">
         <div className="relative lg:col-span-2"><Search size={15} className="absolute left-3 top-3 text-slate2-400" /><input className="input pl-9" placeholder="Search…" aria-label="Search cashbook" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
         <input type="date" className="input" value={from} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="From" />
         <input type="date" className="input" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" />
         <select className="input" value={account} onChange={(e) => setAccount(e.target.value)} aria-label="Account"><option value="">All accounts</option>{(accounts.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         <select className="input" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Category"><option value="">All categories</option>{(categories.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.kind})</option>)}</select>
-      </div>
+      </FilterBar>
 
       {isLoading && <Spinner />}
       {error && <ErrorBox error={error} retry={() => refetch()} />}
@@ -73,7 +75,7 @@ export default function Cashbook() {
           <div className="card overflow-hidden">
             {data.rows.length === 0 ? <Empty title="No entries match">Try widening the date range or clearing filters.</Empty> : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
+                <table className="stack w-full min-w-[720px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr>
                   <th className="th">Date</th><th className="th">Ref</th><th className="th">Description</th><th className="th">Account</th><th className="th text-right">Money In</th><th className="th text-right">Money Out</th><th className="th text-right">Balance</th></tr></thead>
                   <tbody className="divide-y divide-slate2-100">
                     <tr className="bg-slate2-50 font-medium"><td className="td" colSpan={6}>Opening balance</td><td className="td num">{fmtNum(data.opening)}</td></tr>

@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
-import { X, Loader2, AlertTriangle } from 'lucide-react'
+import { Children, cloneElement, isValidElement, useEffect, useState, type ReactElement, type ReactNode } from 'react'
+import { X, Loader2, AlertTriangle, SlidersHorizontal } from 'lucide-react'
 import clsx from 'clsx'
 
 export function Modal({ open, onClose, title, children, wide, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean; footer?: ReactNode }) {
@@ -87,4 +87,18 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 export function Notice({ tone = 'amber', children }: { tone?: 'amber' | 'red' | 'green' | 'neutral'; children: ReactNode }) {
   const c = { amber: 'border-amber-300 bg-amber-50 text-amber-900', red: 'border-red-200 bg-red-50 text-red-800', green: 'border-emerald-200 bg-emerald-50 text-emerald-800', neutral: 'border-slate2-200 bg-slate2-100 text-slate2-700' }[tone]
   return <div className={clsx('rounded-md border px-3 py-2 text-sm', c)}>{children}</div>
+}
+
+/** List filters. Desktop: the usual grid. Phone: the first control (search) plus a "Filters" button; the rest open on tap, so the data comes first. */
+export function FilterBar({ children, className }: { children: ReactNode; className?: string }) {
+  const [open, setOpen] = useState(false)
+  const kids = Children.toArray(children).filter(isValidElement) as ReactElement<{ className?: string }>[]
+  const [first, ...rest] = kids
+  return (
+    <div className={clsx('card mb-4 grid grid-cols-[1fr_auto] gap-3 p-3 sm:grid-cols-2', className)}>
+      {first}
+      {rest.length > 0 && <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className="btn-ghost sm:hidden"><SlidersHorizontal size={16} />Filters</button>}
+      {rest.map((k, i) => cloneElement(k, { key: i, className: clsx(k.props.className, 'max-sm:col-span-2', !open && 'max-sm:hidden') }))}
+    </div>
+  )
 }

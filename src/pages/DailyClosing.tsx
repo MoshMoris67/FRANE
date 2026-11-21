@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CalendarCheck, FileText } from 'lucide-react'
 import clsx from 'clsx'
-import { PageHeader, Spinner, ErrorBox, Empty, Badge, Notice, Field, Modal } from '../components/ui'
+import { PageHeader, Spinner, ErrorBox, Empty, Badge, Notice, Field, Modal, FilterBar } from '../components/ui'
 import ReconcileDialog from '../features/closing/ReconcileDialog'
 import { supabase, errMsg } from '../lib/supabase'
 import { useAccounts, useRefreshMoney } from '../features/data'
@@ -99,12 +99,12 @@ function History() {
   }
   return (
     <>
-      <div className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-4"><input type="date" className="input" value={from} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input type="date" className="input" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" />
+      <FilterBar className="lg:grid-cols-4"><input type="date" className="input" value={from} max={to} onChange={(e) => setFrom(e.target.value)} aria-label="From" /><input type="date" className="input" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label="To" />
         <select className="input" value={acc} onChange={(e) => setAcc(e.target.value)} aria-label="Account"><option value="">All accounts</option>{(accounts.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
-        <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status"><option value="">Any status</option><option value="submitted">Awaiting approval</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="reopened">Reopened</option></select></div>
+        <select className="input" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status"><option value="">Any status</option><option value="submitted">Awaiting approval</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="reopened">Reopened</option></select></FilterBar>
       {isLoading && <Spinner />}{qErr && <ErrorBox error={qErr} />}
       {data && (data.length === 0 ? <div className="card"><Empty icon={<CalendarCheck size={22} />} title="No closings in this period" /></div> : (
-        <div className="card overflow-x-auto"><table className="w-full min-w-[820px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Account</th><th className="th text-right">Expected</th><th className="th text-right">Counted</th><th className="th text-right">Variance</th><th className="th">Status</th><th className="th" /></tr></thead>
+        <div className="card overflow-x-auto"><table className="stack w-full min-w-[820px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Account</th><th className="th text-right">Expected</th><th className="th text-right">Counted</th><th className="th text-right">Variance</th><th className="th">Status</th><th className="th" /></tr></thead>
           <tbody className="divide-y divide-slate2-100">{data.map((c) => (
             <tr key={c.id} className={c.status === 'reopened' ? 'opacity-60' : ''}><td className="td whitespace-nowrap">{fmtDate(c.closing_date)}<span className="block text-[11px] text-slate2-500">{fmtDateTime(c.closed_at)}</span></td><td className="td">{c.accounts?.name}</td><td className="td num">{fmtUGX(c.expected_balance)}</td><td className="td num">{fmtUGX(c.counted_balance)}</td>
               <td className={clsx('td num font-semibold', c.variance < 0 && 'text-red-600', c.variance > 0 && 'text-amber-700')}>{c.variance === 0 ? '—' : fmtUGX(c.variance)}{c.explanation && <span className="block text-[11px] font-normal text-slate2-500">{c.explanation}</span>}</td>
@@ -131,7 +131,7 @@ function Recons() {
         {(can('daily_closing', 'create') || can('accounts', 'edit')) && <button className="btn-primary" onClick={() => setAdding(true)}>Reconcile an account</button>}</div>
       {isLoading && <Spinner />}{error && <ErrorBox error={error} />}
       {data && (data.length === 0 ? <div className="card"><Empty title="No reconciliations yet">Compare each account’s system balance with the real cash count, bank statement or mobile-money balance.</Empty></div> : (
-        <div className="card overflow-x-auto"><table className="w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Account</th><th className="th text-right">System</th><th className="th text-right">Actual</th><th className="th text-right">Difference</th><th className="th">Notes</th></tr></thead>
+        <div className="card overflow-x-auto"><table className="stack w-full min-w-[640px]"><thead className="border-b border-slate2-200 bg-slate2-50"><tr><th className="th">Date</th><th className="th">Account</th><th className="th text-right">System</th><th className="th text-right">Actual</th><th className="th text-right">Difference</th><th className="th">Notes</th></tr></thead>
           <tbody className="divide-y divide-slate2-100">{data.map((r) => <tr key={r.id}><td className="td whitespace-nowrap">{fmtDate(r.reconciliation_date)}</td><td className="td">{r.accounts?.name}</td><td className="td num">{fmtUGX(r.system_balance)}</td><td className="td num">{fmtUGX(r.actual_balance)}</td><td className={clsx('td num font-semibold', r.difference < 0 && 'text-red-600', r.difference > 0 && 'text-amber-700')}>{r.difference === 0 ? '—' : fmtUGX(r.difference)}</td><td className="td text-xs text-slate2-600">{r.notes}{r.adjustment_txn_id && <> <Badge tone="orange">adjusted</Badge></>}{r.closing_id && <> <Badge>daily closing</Badge></>}</td></tr>)}</tbody></table></div>))}
       {adding && <ReconcileDialog onClose={() => setAdding(false)} />}
     </>
